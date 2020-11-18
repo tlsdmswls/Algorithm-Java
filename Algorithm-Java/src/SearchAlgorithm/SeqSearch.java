@@ -1,8 +1,8 @@
 package SearchAlgorithm;
 import java.util.Scanner;
 /*
- * 선형 검색(Liner Search) : 배열에서 순서대로 검색하는 유일한 방법
- * 순차검색(Sequential Search)
+ * 선형 검색(Liner Search)
+ * 또는 순차검색(Sequential Search)
  * 
  * 원하는 키 값을 갖는 요소를 만날 때까지 맨 앞부터 순서대로 요소를 검색한다.
  * 
@@ -12,7 +12,6 @@ import java.util.Scanner;
  * 
  * 배열 요솟수가 n개일 때, 종료 조건 1, 2를 판단하는 횟수 = n/2회
  * */
-
 
 /*
  * 배열 a의 처음부터 끝까지 n개의 요소를 대상으로 값이 key인 요소를 선형 검색한다.
@@ -43,8 +42,6 @@ public class SeqSearch {
 			i++;
 		}
 	}
-	
-	
 	
 	public static void main(String[] args) {
 		Scanner sc = new Scanner(System.in);
