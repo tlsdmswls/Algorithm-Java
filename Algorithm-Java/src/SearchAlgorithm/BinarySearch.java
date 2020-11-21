@@ -6,21 +6,22 @@ import java.util.Scanner;
  * */
 
 public class BinarySearch {
+	//요솟수가 n인 배열 a에서 key와 같은 요소를 이진 검색한다.
 	static int binarySearch(int[] a, int n, int key) {
-		int pl = 0;
-		int pr = n - 1;
+		int pl = 0;		//검색 범위의 첫 인덱스
+		int pr = n - 1;	//검색 범위의 끝 인덱스
 		
 		do {
-			int pc = (pl + pr) / 2;
+			int pc = (pl + pr) / 2;		// 중앙 요소의 인덱스
 			
 			if(a[pc] == key)
-				return pc;
+				return pc;				//검색 성공!
 			
 			else if(a[pc] < key)
-				pl = pc + 1;
+				pl = pc + 1;			//검색 범위를 뒤쪽 절반으로 좁힘
 			
 			else
-				pr = pc - 1;
+				pr = pc - 1;			//검색 실패!
 		} while(pl <= pr);
 		
 		return -1;
@@ -38,11 +39,11 @@ public class BinarySearch {
 		System.out.print("arr[0] : ");
 		arr[0] = sc.nextInt();
 		
-		for(int i = 1; i < num; i++) {	//첫 번째 요소 입력했기 때문에 초기값 0
+		for(int i = 1; i < num; i++) {	//첫 번째 요소 입력했기 때문에 초기값 1
 			do{
 				System.out.print("arr[" + i + "] : ");
 				arr[i] = sc.nextInt();
-			} while(arr[i] < arr[i-1]);
+			} while(arr[i] < arr[i-1]);	//바로 앞의 요소보다 작으면 다시 입력
 		}
 		
 		System.out.print("검색할 값 : ");
