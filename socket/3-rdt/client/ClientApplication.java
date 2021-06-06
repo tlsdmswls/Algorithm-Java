@@ -17,6 +17,7 @@ public class ClientApplication {
 		int num_req = 1;
 
 		/* TCP 연결 전, 사용자에게 CID를 입력받음 */
+		System.out.println("Test Client");
 		System.out.print("CID(NickName) 입력: ");
 		String cid = sc.nextLine();
 
@@ -73,16 +74,11 @@ public class ClientApplication {
 
 		try {
 			dout.writeUTF(msg);
+			System.out.println("[Request] : " + msg);
 		} catch (IOException e) {
 			System.out.println("입출력 예외 발생...");
 		}
 	}
-
-}
-
-/* 데이터 손실 시뮬레이터용 객체 */
-class simulator extends Thread {
-	
 }
 
 /* 메시지 리스너 객체 */
@@ -133,7 +129,6 @@ class MessageListener extends Thread {
 				} else {
 					System.out.println(msg);
 				}
-				System.out.println("---------------------------------------------");
 			}
 		} catch (Exception e) {
 			System.out.println("듣기 객체에서 예외 발생...");
