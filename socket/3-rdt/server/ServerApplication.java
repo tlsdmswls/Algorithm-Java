@@ -1,13 +1,3 @@
-/**
- * [ Server error log ]
- * 
- * java.lang.NullPointerException: Cannot read field "dout" because "this.c" is null
-	at Simulator.resMessage(ServerApplication.java:86)
-	at Simulator.write(ServerApplication.java:64)
-	at Client.run(ServerApplication.java:151)
- * 
- */
-
 import java.io.*;
 import java.net.*;
 import java.time.LocalDateTime;
@@ -53,25 +43,28 @@ class Simulator {
 		c = _c;
 	}
 	
-	// write 테스트
-	public void writeMessage(String msg) {
-		try {
-			c.dout.writeUTF(msg);
-			status = "NoLoss";
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-	
 	/* 클라이언트에 메시지를 보내는 메소드 */
-	public void sendMessage() {
+	public void sendMessage(String type, String msg) {
 		int if_write = rd.nextInt(10);
 		
-		if(if_write < 7) {
-			status = "NoLoss";
-		}
-		else {
-			status = "Loss";
+		try {
+			if(if_write < 7) {
+				// ACK message 전송
+				if(type.equals("ack")) {
+					c.dout.writeUTF(msg);
+					status = "NoLoss";
+				}
+				// Response message 전송
+				else if(type.equals("res")){
+					c.dout.writeUTF(msg);
+					status = "NoLoss";
+				}
+			}
+			else {
+				status = "Loss";
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 }
@@ -88,6 +81,7 @@ class Client extends Thread {
 	int currentTime = 1;		// 서버 연결 시간
 	int scode;					// 상태 코드
 	String cid;					// 사용자가 입력한 CID
+	String num_req;				// Response message 내 Num_Req의 value
 	
 	OutputStream out = null;
 	DataOutputStream dout = null;
@@ -111,6 +105,8 @@ class Client extends Thread {
 
 	public void run() {
 		try {
+			startTimer();
+			
 			out = socket.getOutputStream();
 			dout = new DataOutputStream(out);
 			in = socket.getInputStream();
@@ -136,30 +132,33 @@ class Client extends Thread {
 					
 					// 상태 코드에 맞는 value 작성 후, 데이터 손실 시뮬레이터용 객체에서 write 수행
 					String valueA = resValue(100, cid);
-					sm.writeMessage(resMessage(100, valueA));
-					System.out.println(sm.status);
+					resMessage(100, valueA);
+					
+					if(sm.status.equals("NoLoss")) {
+						ackMessage(num_req);
+					}
 				}
 				else if(msg.equals("b")) {
 					// 현재 시간
 					String valueB = resValue(130, null);
-					sm.writeMessage(resMessage(130, valueB));
+					resMessage(130, valueB);
 				}
 				else if(msg.equals("c")) {
 					// 클라이언트와의 연결 시간
 					String valueC = resValue(150, null);
-					sm.writeMessage(resMessage(150, valueC));
+					resMessage(150, valueC);
 				}
 				else if(msg.equals("d")) {
 					// 클라이언트 CID, IP주소 리스트
 					cid = st.nextToken();
 					cid = cid.substring(cid.lastIndexOf("CID:") + 4);
 					String valueD = resValue(200, null);
-					sm.writeMessage(resMessage(200, valueD));
+					resMessage(200, valueD);
 				}
 				else if(msg.equals("q")){
 					// 서버 연결 종료
 					String valueQ = resValue(250, null);
-					sm.writeMessage(resMessage(250, valueQ));
+					resMessage(250, valueQ);
 					try {
 						if(din != null)
 							din.close();
@@ -180,8 +179,9 @@ class Client extends Thread {
 				}
 				else {	// 요청 메시지 인식 실패
 					String valueF = resValue(300, null);
-					sm.writeMessage(resMessage(300, valueF));
+					resMessage(300, valueF);
 				}
+				System.out.println(sm.status);
 			}
 		} catch (Exception e) {
 			System.out.println("예외 발생...");
@@ -220,31 +220,25 @@ class Client extends Thread {
 	}
 	
 	/* 클라이언트로 ACK message를 전송하는 메소드 */
-	public void ackMessage(int num_req) {
-		String ack = "ACK///Num_ACK:"+ num_req + "///END_MSG";
-		
-		try {
-			dout.writeUTF(ack);
-		} catch (IOException e) {
-			System.out.println("입출력 예외 발생...");
-		}
+	public void ackMessage(String num_req) {
+		// msg = ACK message
+		String msg = "ACK///Num_ACK:"+ num_req + "///END_MSG";
+		sm.sendMessage(msg, "ack");
 	}
 	
 	/* 클라이언트로 Response message를 전송하는 메소드 */
-	public String resMessage(int scode, String value) {
-		// msg = Response message
-		String msg = "Res///" + scode + "///" + value + "///END_MSG";
-		return msg;
-	}
-	
-	/* 클라이언트로 Response message를 전송하는 메소드 v2 */
-	public void resMessageV2(int scode, String value) {
-		// msg = Response message
-		String msg = "Res///" + scode + "///" + value + "///END_MSG";
-		try {
-			dout.writeUTF(msg);
-		} catch (IOException e) {
-			System.out.println("입출력 예외 발생...");
+	public void resMessage(int scode, String value) {
+		// ACK message가 정상적으로 전송될 때까지 반복
+		while(true) {
+			// msg = Response message
+			String msg = "Res///" + scode + "///" + value + "///END_MSG";
+			sm.sendMessage("res", msg);
+			
+			// Response message가 정상적으로 전송된 경우 ACK message를 전송
+			if(sm.status.equals("NoLoss")) {
+				ackMessage(num_req);
+				break;
+			}
 		}
 	}
 	
