@@ -46,7 +46,7 @@ class Simulator {
 	/* 클라이언트에 메시지를 보내는 메소드 */
 	public void sendMessage(String type, String msg) {
 		int if_write = rd.nextInt(10);
-		
+		System.out.println(msg);
 		try {
 			if(if_write < 7) {
 				// ACK message 전송
@@ -119,11 +119,17 @@ class Client extends Thread {
 				String msg = din.readUTF();
 				StringTokenizer st = new StringTokenizer(msg, "///");
 				
+				num_req = msg;
+				for (int i = 0; i < 4; i++) {
+					num_req = st.nextToken();
+				}
+				num_req = num_req.substring(8);
+				
 				/* 조건문:	사용자의 요청사항
 				 * 블록 내부:	Response message 전송을 위한 내용 */
 				msg = st.nextToken();
 				if(msg.equals("Req")) msg = st.nextToken();
-				 
+				
 				if(msg.equals("a")) {
 					// CID 저장
 					cid = st.nextToken();
@@ -181,7 +187,7 @@ class Client extends Thread {
 					String valueF = resValue(300, null);
 					resMessage(300, valueF);
 				}
-				System.out.println(sm.status);
+				System.out.println(sm.status); 	// Loss 여부 확인
 			}
 		} catch (Exception e) {
 			System.out.println("예외 발생...");
