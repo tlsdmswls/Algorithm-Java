@@ -85,7 +85,8 @@ public class ClientApplication {
 class MessageListener extends Thread {
 	Socket socket;
 	int quit = 0;
-
+	
+	
 	MessageListener(Socket _s) {
 		this.socket = _s;
 	}
@@ -96,38 +97,45 @@ class MessageListener extends Thread {
 			DataInputStream din = new DataInputStream(in);
 
 			while (true) {
-				String scode = null;
-				
-				// 서버로부터 메시지를 받아와서 출력
-				String msg = din.readUTF();
-				System.out.println("[Response] : " + msg);
-				
+				/* 서버로부터 메시지를 받아와서 출력 */
+				String full_msg = din.readUTF();
+				String msg = full_msg;
+				String scode = full_msg;
 				StringTokenizer st = new StringTokenizer(msg, "///");
-				for (int i = 0; i < 3; i++) {
+				
+				msg = st.nextToken();
+				scode = st.nextToken();
+				
+				System.out.println("SCODE :::::::::::: " + scode);
+				
+				if(msg.equals("Res")) {
+					System.out.println("[Response] : " + full_msg);
 					msg = st.nextToken();
-					if (i == 1)
-						scode = msg;
-				}
-
-				/* 사용자의 요청 결과 출력 */
-				if (scode.equals("200")) {
-					clientList(msg);
-				} else if (scode.equals("250")) {
-					System.out.println(msg);
-					try {
-						if(din != null)
-							din.close();
-						if(in != null)
-							in.close();
-						if(socket != null)
-							socket.close();
-					} catch (Exception e) {
-						e.printStackTrace();
+					
+					/* 사용자의 요청 결과 출력 */
+					if (scode.equals("200")) {
+						clientList(msg);
+					} else if (scode.equals("250")) {
+						System.out.println(msg);
+						try {
+							if(din != null)
+								din.close();
+							if(in != null)
+								in.close();
+							if(socket != null)
+								socket.close();
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+						quit++;
+						break;
+					} else {
+						System.out.println("요청 결과 :::::::: " + msg);
 					}
-					quit++;
-					break;
-				} else {
-					System.out.println(msg);
+				} 
+				else if(msg.equals("ACK")) {
+					System.out.println("[ACK] : " + msg);
+					
 				}
 			}
 		} catch (Exception e) {
