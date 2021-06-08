@@ -74,7 +74,7 @@ class Client extends Thread {
 	String msg;					// 클라이언트로부터 읽어들인 메시지
 	String cid;					// 사용자가 입력한 CID
 	String num_req;				// Response message 내 Num_Req의 value
-	String num_save;			// 이전 num_req 값
+	int num_ack = 1;			// ACK message 내 Num_ACK의 value (초기값: 1)
 	boolean close = false;		// 클라이언트가 연결 종료를 요청하면 true
 	
 	OutputStream out = null;
@@ -117,6 +117,7 @@ class Client extends Thread {
 				
 				msg = st_msg.nextToken();
 				
+				/* 클라이언트에게 Request message를 받은 경우 */
 				if(msg.equals("Req")) {
 					msg = st_msg.nextToken();
 					
@@ -125,8 +126,16 @@ class Client extends Thread {
 					}
 					num_req = num_req.substring(8);
 					
-					ackMessage(num_req);
-//					sendResMessage(msg, st_msg);
+					// ACK message 먼저 전송 
+					ackMessage();
+					
+					/* num_req와 num_ack를 비교한다.*/
+					// 두 num이 같은 경우: 정상
+					if(Integer.parseInt(num_req) != num_ack) {
+						// Response message 전송
+						sendResMessage(msg, st_msg);
+						
+					} // 두 num이 다른 경우: 실패 -> Response message 전송 안함
 					
 					if(close == true) {
 						break;
@@ -196,8 +205,9 @@ class Client extends Thread {
 			String valueF = resValue(300, null);
 			resMessage(300, valueF);
 		}
-		System.out.println(sm.status); 	// Loss 여부 확인
-		num_save = num_req;
+		System.out.println("Server > Send Response Message");
+		System.out.println(sm.status); 			// Loss 여부 확인
+		num_ack = Integer.parseInt(num_req);	// num_req 값을 int형으로 num_ack에 저장
 	}
 	
 
@@ -234,7 +244,7 @@ class Client extends Thread {
 	/* 데이터 손실 시뮬레이터용 객체에서 ACK message를 전송하는 메소드 */
 	public void ackMessage() {
 		// msg = ACK message
-		String msg = "ACK///Num_ACK:"+ num_req + "///END_MSG";
+		String msg = "ACK///Num_ACK:"+ num_ack + "///END_MSG";
 		sm.sendMessage(msg);
 	}
 	
