@@ -21,7 +21,7 @@ public class ServerApplication {
 			Socket socket = server.ss.accept();
 			c = new Client(socket, server);
 			server.clients.add(c);
-			c.sm = new Simulator(c);
+			c.sm = new ServerSimulator(c);
 			c.start();
 		}
 	} catch (SocketException e) {
@@ -34,12 +34,12 @@ public class ServerApplication {
 
 
 /* 데이터 손실 시뮬레이터용 객체 */
-class Simulator {
+class ServerSimulator {
 	Random rd = new Random();
 	Client c = null;
 	String status = null;		// 데이터 손실 여부를 체크할 문자열 (Loss, NoLoss)
 		
-	Simulator(Client _c) {
+	ServerSimulator(Client _c) {
 		c = _c;
 	}
 	
@@ -66,14 +66,14 @@ class Client extends Thread {
 	ServerApplication server;
 	ArrayList<String> clientList = new ArrayList<String>();	// 연결된 클라이언트 CID, IP주소
 	ArrayList<String> cidList = new ArrayList<String>();	// 저장을 요청한 클라이언트 CID
-	Simulator sm;				// 데이터 손실 시뮬레이터 객체
+	ServerSimulator sm;				// 데이터 손실 시뮬레이터 객체
 	
 	int currentTime = 1;		// 서버 연결 시간
 	int scode;					// 상태 코드
 	String msg;					// 클라이언트로부터 읽어들인 메시지
 	String cid;					// 사용자가 입력한 CID
 	String num_req;				// Response message 내 Num_Req의 value
-	String num_save;			// 이전 num_req 값
+	String num_ack = "0";		// ACK message 내 Num_Req의 value
 	boolean close = false;		// 클라이언트가 연결 종료를 요청하면 true
 	
 	OutputStream out = null;
@@ -91,7 +91,7 @@ class Client extends Thread {
 		this.currentTime = currentTime;
 	}
 	
-	public Client(Socket _s, Simulator _sm) {
+	public Client(Socket _s, ServerSimulator _sm) {
 		this.socket = _s;
 		this.sm = _sm;
 	}
@@ -105,7 +105,7 @@ class Client extends Thread {
 			in = socket.getInputStream();
 			din = new DataInputStream(in);
 			
-			sm = new Simulator(server.c);
+			sm = new ServerSimulator(server.c);
 			
 			/* 클라이언트로부터 Request message를 읽어들이고 Request message를 전송 */
 			while(true) {
@@ -114,31 +114,36 @@ class Client extends Thread {
 				StringTokenizer st_msg = new StringTokenizer(msg, "///");
 				StringTokenizer st_num = new StringTokenizer(num_req, "///");
 				
+				
+				for (int i = 0; i < 4; i++) {
+					num_req = st_num.nextToken();
+				}
+				num_req = num_req.substring(8);
+				System.out.println("num_req : " + num_req);
+				
+				msg = st_msg.nextToken();
 				msg = st_msg.nextToken();
 				
-				if(msg.equals("Req")) {
-					msg = st_msg.nextToken();
-					
-					for (int i = 0; i < 4; i++) {
-						num_req = st_num.nextToken();
-					}
-					num_req = num_req.substring(8);
-					System.out.println("num_req : " + num_req);
-					
-					sendResMessage(msg, st_msg);
-					if(close == true) {
+				/* 클라이언트에서 메시지를 받지 못한 경우 다시 전송 */
+				while(true) {
+					/* ACK message 전송 */
+					ackMessage(num_req);
+					boolean receive = receiveMessage();
+					System.out.println(sm.status); 	// Loss 여부 확인
+					System.out.println("receive :::::::: " + receive);
+					if(receive == false) {
+						/* ACK message 전송 */
+						ackMessage(num_req);
+						
+						/* Response message 전송 */
+						sendResMessage(msg, st_msg);
+						if(close == true) {
+							break;
+						}
+					} else {
 						break;
 					}
 				}
-				
-				
-				int receive = receiveMessage();
-				
-				/* 클라이언트에서 메시지를 받지 못한 경우, 다시 전송 */
-				if(receive == 1) {
-					
-				}	
-				
 			}
 		} catch (Exception e){
 			e.printStackTrace();
@@ -202,8 +207,7 @@ class Client extends Thread {
 			String valueF = resValue(300, null);
 			resMessage(300, valueF);
 		}
-		System.out.println(sm.status); 	// Loss 여부 확인
-		num_save = num_req;
+		num_ack = num_req;
 	}
 	
 
@@ -252,13 +256,13 @@ class Client extends Thread {
 	}
 	
 	/* Num_Req 값을 보고 메시지가 전송됐는지 확인하는 메소드 */
-	public int receiveMessage() {
-		// 0이면 전송 실패, 1이면 전송 완료
-		int receive = 0;
+	public boolean receiveMessage() {
+		// false = 전송 실패, true = 전송 완료
+		boolean receive = false;
 		
 		// 두 num의 값이 다르면 전송 완료인 것으로 판단
-		if(!num_req.equals(num_save)) {
-			receive = 1;
+		if(!num_req.equals(num_ack)) {
+			receive = true;
 		}
 		return receive;
 	}
