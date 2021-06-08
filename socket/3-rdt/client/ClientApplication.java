@@ -88,7 +88,7 @@ public class ClientApplication {
 	}
 }
 
-/* 메시지 리스너 클래스 */
+/* 메시지 리스너 객체 */
 class MessageListener extends Thread {
 	Socket socket;
 	int quit = 0;

@@ -33,7 +33,7 @@ public class ServerApplication {
 }
 
 
-/* 데이터 손실 시뮬레이터용 클래스 */
+/* 데이터 손실 시뮬레이터용 객체 */
 class ServerSimulator {
 	Random rd = new Random();
 	Client c = null;
