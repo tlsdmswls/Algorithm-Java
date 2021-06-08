@@ -67,14 +67,15 @@ class Client extends Thread {
 	ServerApplication server;
 	ArrayList<String> clientList = new ArrayList<String>();	// 연결된 클라이언트 CID, IP주소
 	ArrayList<String> cidList = new ArrayList<String>();	// 저장을 요청한 클라이언트 CID
-	ServerSimulator sm;				// 데이터 손실 시뮬레이터 객체
+	ServerSimulator sm;			// 데이터 손실 시뮬레이터 객체
 	
 	int currentTime = 1;		// 서버 연결 시간
 	int scode;					// 상태 코드
 	String msg;					// 클라이언트로부터 읽어들인 메시지
 	String cid;					// 사용자가 입력한 CID
 	String num_req;				// Response message 내 Num_Req의 value
-	int num_ack = 1;			// ACK message 내 Num_ACK의 value (초기값: 1)
+	int num_ack = 0;			// ACK message 내 Num_ACK의 value (초기값: 0)
+	boolean check_send = false; // req_num과 ack_num이 같으면 true
 	boolean close = false;		// 클라이언트가 연결 종료를 요청하면 true
 	
 	OutputStream out = null;
@@ -126,16 +127,22 @@ class Client extends Thread {
 					}
 					num_req = num_req.substring(8);
 					
-					// ACK message 먼저 전송 
+					/* num_req와 num_ack를 비교한다.*/
+					// 두 num이 다른 경우: 정상 -> num_ack + 1
+					check_send = Integer.parseInt(num_req) == num_ack;
+					
+					if(check_send == false) {
+						num_ack++;	// 통신이 정상적으로 이루어졌을 때마다 +1
+					}
+					
+					// ACK message 전송
 					ackMessage();
 					
-					/* num_req와 num_ack를 비교한다.*/
-					// 두 num이 같은 경우: 정상
-					if(Integer.parseInt(num_req) != num_ack) {
-						// Response message 전송
+					// Response message 전송
+					// 두 num이 같은 경우: 정상 -> 메시지 전송
+					if(check_send == true) {
 						sendResMessage(msg, st_msg);
-						
-					} // 두 num이 다른 경우: 실패 -> Response message 전송 안함
+					}
 					
 					if(close == true) {
 						break;
@@ -205,9 +212,7 @@ class Client extends Thread {
 			String valueF = resValue(300, null);
 			resMessage(300, valueF);
 		}
-		System.out.println("Server > Send Response Message");
-		System.out.println(sm.status); 			// Loss 여부 확인
-		num_ack = Integer.parseInt(num_req);	// num_req 값을 int형으로 num_ack에 저장
+		System.out.println("RESPONSE status > " + sm.status); 			// Loss 여부 확인
 	}
 	
 

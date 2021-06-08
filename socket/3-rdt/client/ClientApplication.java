@@ -21,8 +21,6 @@ public class ClientApplication {
 		InputStream in = null;
 		DataInputStream din = null;
 
-		int num_req = 1;
-
 		/* TCP 연결 전, 사용자에게 CID를 입력받음 */
 		System.out.print("CID(NickName) 입력: ");
 		cid = sc.nextLine();
@@ -52,8 +50,8 @@ public class ClientApplication {
 					continue;
 				}
 				
-				reqMessage(client_req, cid, num_req, dout);
-				num_req++; 	// Request message 1번 보낼 때마다 +1
+				reqMessage(client_req, cid, dout);
+//				num_req++; 	// Request message 1번 보낼 때마다 +1
 				Thread.sleep(100);
 
 				/* 서버와 클라이언트의 연결을 종료하는 부분 */
@@ -87,7 +85,7 @@ public class ClientApplication {
 	}
 
 	/* 서버로 Request message를 전송하는 메소드 */
-	public static void reqMessage(String client_req, String cid, int num_req, DataOutputStream dout) {
+	public static void reqMessage(String client_req, String cid, DataOutputStream dout) {
 		// msg = Request message
 		String msg = "Req///" + client_req + "///CID:" + cid + "///Num_Req:" + num_req + "///END_MSG";
 		sm.sendMessage(msg);
@@ -99,6 +97,7 @@ public class ClientApplication {
 class MessageListener extends Thread {
 	Socket socket;
 	boolean quit = false;
+	boolean check_ack = false;
 	int num_ack = 1;
 	ClientApplication c;
 	
@@ -122,10 +121,10 @@ class MessageListener extends Thread {
 				StringTokenizer st = new StringTokenizer(msg, "///");
 				msg = st.nextToken();
 				
-				// ACK message 받은 경우
+				// ACK message 받은 경우 (타이머 추가 필요)
 				if(msg.equals("ACK")) {
 					System.out.println("[ACK] : " + full_msg);
-					// num_req와 num_ack 확인
+					
 				}
 				// Response message 받은 경우
 				if(msg.equals("Res")) {
@@ -160,6 +159,8 @@ class MessageListener extends Thread {
 					} else {
 						System.out.println(msg);
 					}
+					// 통신이 정상적으로 이루어졌을 때마다 +1
+					c.num_req++;
 				}
 			}
 		} catch (Exception e) {
@@ -232,4 +233,3 @@ class ClientSimulator {
 		timer.schedule(task, 100, 100);	// 0.1초 뒤 실행, 0.1초마다 반복
 	}
 }
-
