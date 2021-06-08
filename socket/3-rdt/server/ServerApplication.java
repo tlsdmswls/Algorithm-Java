@@ -126,7 +126,7 @@ class Client extends Thread {
 					num_req = num_req.substring(8);
 					
 					ackMessage(num_req);
-					sendResMessage(msg, st_msg);
+//					sendResMessage(msg, st_msg);
 					if(close == true) {
 						break;
 					}
