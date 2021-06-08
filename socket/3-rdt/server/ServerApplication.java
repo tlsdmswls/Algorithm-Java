@@ -37,7 +37,7 @@ public class ServerApplication {
 class ServerSimulator {
 	Random rd = new Random();
 	Client c = null;
-	String status = null;		// 데이터 손실 여부를 체크할 문자열 (Loss, NoLoss)
+	String status = null;
 		
 	ServerSimulator(Client _c) {
 		c = _c;
@@ -56,7 +56,7 @@ class ServerSimulator {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		System.out.println(msg);			// 확인용
+		System.out.println(msg);
 	}
 }
 
@@ -108,7 +108,7 @@ class Client extends Thread {
 			
 			sm = new ServerSimulator(server.c);
 			
-			/* 클라이언트로부터 Request message를 읽어들이고 Request message를 전송 */
+			/* 클라이언트로부터 Request message를 읽어들이고 Response message를 전송 */
 			while(true) {
 				msg = din.readUTF();
 				num_req = msg;
@@ -126,7 +126,7 @@ class Client extends Thread {
 					num_req = num_req.substring(8);
 					
 					ackMessage(num_req);
-					sendResMessage(msg, st_msg);
+//					sendResMessage(msg, st_msg);
 					if(close == true) {
 						break;
 					}

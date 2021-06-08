@@ -5,9 +5,8 @@ import java.util.*;
 public class ClientApplication {
 	Socket mySocket = null;
 	MessageListener ml = null;	// 메시지 리스너 객체
-//	static ClientSimulator sm;	// 클라이언트의 데이터 손실 시뮬레이터용 객체
+	static ClientSimulator sm;	// 클라이언트의 데이터 손실 시뮬레이터용 객체
 	static int num_req = 1;		// Request message 내 Num_Req의 value
-	int clientTimer = 1; 		// 타이머는 0.1초부터 시작
 	static String cid = null;	// 클라이언트가 입력한 CID
 	String client_req = null;	// 클라이언트 요청 사항
 	static int res_resend = 0;	// Response 재전송 카운트
@@ -33,6 +32,7 @@ public class ClientApplication {
 			System.out.println("서버로 연결되었습니다.");
 
 			MessageListener listener = new MessageListener(client.mySocket, client);
+			sm = new ClientSimulator(client.mySocket);
 			listener.start();
 
 			out = client.mySocket.getOutputStream();
@@ -71,6 +71,7 @@ public class ClientApplication {
 			}
 		} catch (Exception e) {
 			System.out.println("Connection Fail.");
+			e.printStackTrace();
 		}
 		System.out.print("총 재전송 횟수: ");
 		System.out.println(timeout_resend + res_resend);
@@ -82,13 +83,8 @@ public class ClientApplication {
 	public static void reqMessage(String client_req, String cid, int num_req, DataOutputStream dout) {
 		// msg = Request message
 		String msg = "Req///" + client_req + "///CID:" + cid + "///Num_Req:" + num_req + "///END_MSG";
-
-		try {
-			dout.writeUTF(msg);
-			System.out.println("[Request] : " + msg);
-		} catch (IOException e) {
-			System.out.println("입출력 예외 발생...");
-		}
+		sm.sendMessage(msg);
+		System.out.println("[Request] : " + msg);
 	}
 }
 
@@ -111,7 +107,10 @@ class MessageListener extends Thread {
 ;			DataOutputStream dout = new DataOutputStream(out);
 
 			while (true) {
-				/* 서버로부터 메시지를 받아와서 출력 */
+				/* 서버로부터 ACK 메시지를 받음 */
+				
+				
+				/* 서버로부터 Request 메시지를 받아와서 출력 */
 				String full_msg = din.readUTF();
 				String msg = full_msg;
 				String scode = null;
@@ -130,17 +129,23 @@ class MessageListener extends Thread {
 						clientList(msg);
 					} else if (scode.equals("250")) {
 						System.out.println(msg);
+						quit++;
 						try {
-							if(din != null)
-								din.close();
-							if(in != null)
-								in.close();
-							if(socket != null)
-								socket.close();
+							if(quit == 1) {
+								if(dout != null)
+									dout.close();
+								if(out != null)
+									out.close();
+								if(din != null)
+									din.close();
+								if(in != null)
+									in.close();
+								if(socket != null)
+									socket.close();
+							}
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
-						quit++;
 						break;
 					} else {
 						System.out.println(msg);
@@ -165,5 +170,59 @@ class MessageListener extends Thread {
 			msg = st.nextToken();
 			System.out.println(msg);
 		}
+	}
+}
+
+/* 데이터 손실 시뮬레이터용 객체 */
+class ClientSimulator {
+	ClientApplication c;
+	Socket socket;
+	Random rd = new Random();
+	String status = null;		// 데이터 손실 여부를 체크할 문자열 (Loss, NoLoss)
+	MessageListener ml;
+	int clientTimer = 1; 		// 타이머는 0.1초부터 시작
+	
+	ClientSimulator(Socket _s) {
+		socket = _s;
+	}
+	
+//	ClientSimulator(MessageListener _ml) {
+//		ml = _ml;
+//	}
+	
+	/* 서버로 Request message를 전송하는 메소드 */
+	public void sendMessage(String msg) {
+		OutputStream out;
+		try {
+			out = this.socket.getOutputStream();
+			DataOutputStream dout = new DataOutputStream(out);
+			
+			int if_write = rd.nextInt(10);
+			if(if_write < 7) {
+				dout.writeUTF(msg);
+				status = "NoLoss";
+			} else {
+				status = "Loss";
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/* 타이머를 구동(재시작)하는 메소드 */
+	public void startTimer() {
+		Timer timer = new Timer();
+		clientTimer = 1;
+		TimerTask task = new TimerTask(){
+		    @Override
+		    public void run() {
+		    	while(true) {
+		    		try {
+		    			clientTimer++;		// 실행 횟수 증가
+						Thread.sleep(100);	// 0.1초 단위
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+		}}}};
+		timer.schedule(task, 100, 100);	// 0.1초 뒤 실행, 0.1초마다 반복
 	}
 }
