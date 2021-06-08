@@ -100,16 +100,15 @@ class MessageListener extends Thread {
 				/* 서버로부터 메시지를 받아와서 출력 */
 				String full_msg = din.readUTF();
 				String msg = full_msg;
-				String scode = full_msg;
+				String scode = null;
 				StringTokenizer st = new StringTokenizer(msg, "///");
 				
 				msg = st.nextToken();
-				scode = st.nextToken();
-				
-				System.out.println("SCODE :::::::::::: " + scode);
 				
 				if(msg.equals("Res")) {
 					System.out.println("[Response] : " + full_msg);
+					msg = st.nextToken();
+					scode = msg;
 					msg = st.nextToken();
 					
 					/* 사용자의 요청 결과 출력 */
@@ -130,11 +129,11 @@ class MessageListener extends Thread {
 						quit++;
 						break;
 					} else {
-						System.out.println("요청 결과 :::::::: " + msg);
+						System.out.println(msg);
 					}
 				} 
 				else if(msg.equals("ACK")) {
-					System.out.println("[ACK] : " + msg);
+					System.out.println("[ACK] : " + full_msg);
 					
 				}
 			}
@@ -147,6 +146,7 @@ class MessageListener extends Thread {
 	void clientList(String msg) {
 		StringTokenizer st = new StringTokenizer(msg, "***");
 		int count = st.countTokens();
+
 		for (int i = 0; i < count - 1; i++) {
 			msg = st.nextToken();
 			System.out.println(msg);
