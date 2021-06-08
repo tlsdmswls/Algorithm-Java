@@ -56,6 +56,7 @@ class ServerSimulator {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		System.out.println(msg);			// 확인용
 	}
 }
 
@@ -123,8 +124,8 @@ class Client extends Thread {
 						num_req = st_num.nextToken();
 					}
 					num_req = num_req.substring(8);
-					System.out.println("num_req : " + num_req);
 					
+					ackMessage(num_req);
 					sendResMessage(msg, st_msg);
 					if(close == true) {
 						break;

@@ -10,8 +10,8 @@ public class ClientApplication {
 	int clientTimer = 1; 		// 타이머는 0.1초부터 시작
 	static String cid = null;	// 클라이언트가 입력한 CID
 	String client_req = null;	// 클라이언트 요청 사항
-	static int ack_resend = 0;	// ACK 재전송 카운트
 	static int res_resend = 0;	// Response 재전송 카운트
+	static int timeout_resend = 0;	// 타임아웃에 의한 재전송 카운트
 	
 	public static void main(String[] args) {
 		ClientApplication client = new ClientApplication();
@@ -72,6 +72,10 @@ public class ClientApplication {
 		} catch (Exception e) {
 			System.out.println("Connection Fail.");
 		}
+		System.out.print("총 재전송 횟수: ");
+		System.out.println(timeout_resend + res_resend);
+		System.out.println("Time out에 의한 재전송 횟수: " + timeout_resend);
+		System.out.println("Response message 재전송 횟수: " + res_resend);
 	}
 
 	/* 서버로 Request message를 전송하는 메소드 */
@@ -103,6 +107,8 @@ class MessageListener extends Thread {
 		try {
 			InputStream in = this.socket.getInputStream();
 			DataInputStream din = new DataInputStream(in);
+			OutputStream out = this.socket.getOutputStream()
+;			DataOutputStream dout = new DataOutputStream(out);
 
 			while (true) {
 				/* 서버로부터 메시지를 받아와서 출력 */
