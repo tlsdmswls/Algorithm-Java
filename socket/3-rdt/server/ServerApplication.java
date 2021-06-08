@@ -127,18 +127,11 @@ class Client extends Thread {
 					
 					ackMessage(num_req);
 //					sendResMessage(msg, st_msg);
+					
 					if(close == true) {
 						break;
 					}
 				}
-				
-				
-				int receive = receiveMessage();
-				
-				/* 클라이언트에서 메시지를 받지 못한 경우, 다시 전송 */
-				if(receive == 1) {
-					
-				}	
 				
 			}
 		} catch (Exception e){
@@ -239,7 +232,7 @@ class Client extends Thread {
 	}
 
 	/* 데이터 손실 시뮬레이터용 객체에서 ACK message를 전송하는 메소드 */
-	public void ackMessage(String num_req) {
+	public void ackMessage() {
 		// msg = ACK message
 		String msg = "ACK///Num_ACK:"+ num_req + "///END_MSG";
 		sm.sendMessage(msg);
@@ -251,19 +244,7 @@ class Client extends Thread {
 		String msg = "Res///" + scode + "///" + value + "///END_MSG";
 		sm.sendMessage(msg);
 	}
-	
-	/* Num_Req 값을 보고 메시지가 전송됐는지 확인하는 메소드 */
-	public int receiveMessage() {
-		// 0이면 전송 실패, 1이면 전송 완료
-		int receive = 0;
-		
-		// 두 num의 값이 다르면 전송 완료인 것으로 판단
-		if(!num_req.equals(num_save)) {
-			receive = 1;
-		}
-		return receive;
-	}
-	
+
 	/* CurrentTime을 재기 위한 메소드 */
 	public void startTimer() {
 		Timer timer = new Timer();
