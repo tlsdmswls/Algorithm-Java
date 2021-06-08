@@ -7,7 +7,6 @@ public class ClientApplication {
 	MessageListener ml = null;	// 메시지 리스너 객체
 	static ClientSimulator sm;	// 클라이언트의 데이터 손실 시뮬레이터용 객체
 	static int num_req = 1;		// Request message 내 Num_Req의 value
-	int clientTimer = 1; 		// 타이머는 0.1초부터 시작
 	static String cid = null;	// 클라이언트가 입력한 CID
 	String client_req = null;	// 클라이언트 요청 사항
 	static int res_resend = 0;	// Response 재전송 카운트
@@ -108,7 +107,10 @@ class MessageListener extends Thread {
 ;			DataOutputStream dout = new DataOutputStream(out);
 
 			while (true) {
-				/* 서버로부터 메시지를 받아와서 출력 */
+				/* 서버로부터 ACK 메시지를 받음 */
+				
+				
+				/* 서버로부터 Request 메시지를 받아와서 출력 */
 				String full_msg = din.readUTF();
 				String msg = full_msg;
 				String scode = null;
@@ -178,7 +180,8 @@ class ClientSimulator {
 	Random rd = new Random();
 	String status = null;		// 데이터 손실 여부를 체크할 문자열 (Loss, NoLoss)
 	MessageListener ml;
-
+	int clientTimer = 1; 		// 타이머는 0.1초부터 시작
+	
 	ClientSimulator(Socket _s) {
 		socket = _s;
 	}
@@ -204,5 +207,22 @@ class ClientSimulator {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	/* 타이머를 구동(재시작)하는 메소드 */
+	public void startTimer() {
+		Timer timer = new Timer();
+		clientTimer = 1;
+		TimerTask task = new TimerTask(){
+		    @Override
+		    public void run() {
+		    	while(true) {
+		    		try {
+		    			clientTimer++;		// 실행 횟수 증가
+						Thread.sleep(100);	// 0.1초 단위
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+		}}}};
+		timer.schedule(task, 100, 100);	// 0.1초 뒤 실행, 0.1초마다 반복
 	}
 }
