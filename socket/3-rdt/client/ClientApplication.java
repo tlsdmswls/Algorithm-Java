@@ -98,7 +98,8 @@ public class ClientApplication {
 /* 메시지 리스너 객체 */
 class MessageListener extends Thread {
 	Socket socket;
-	int quit = 0;
+	boolean quit = false;
+	int num_ack = 1;
 	ClientApplication c;
 	
 	MessageListener(Socket _s, ClientApplication _c) {
