@@ -21,8 +21,6 @@ public class ClientApplication {
 		InputStream in = null;
 		DataInputStream din = null;
 
-		int num_req = 1;
-
 		/* TCP 연결 전, 사용자에게 CID를 입력받음 */
 		System.out.print("CID(NickName) 입력: ");
 		cid = sc.nextLine();
@@ -40,17 +38,24 @@ public class ClientApplication {
 			in = client.mySocket.getInputStream();
 			din = new DataInputStream(in);
 
-			while (true) {
+			while(true) {
 				System.out.println("\n서버로 보낼 요청에 해당하는 알파벳을 입력하세요.\n" + " a) CID 저장\n" + " b) 현재 시간\n"
 						+ " c) TCP 연결 유지 시간\n" + " d) 연결된 모든 클라이언트의 IP주소와 CID\n" + " q) 서버와 연결 종료");
 				System.out.print(">> ");
 				String client_req = sc.nextLine();
-				reqMessage(client_req, cid, num_req, dout);
-				num_req++; 	// Request message 1번 보낼 때마다 +1
+				
+				boolean check_null = (client_req).equals("");
+				if(check_null == true) {
+					System.out.println("값을 입력하지 않았습니다.");
+					continue;
+				}
+				
+				reqMessage(client_req, cid, dout);
+//				num_req++; 	// Request message 1번 보낼 때마다 +1
 				Thread.sleep(100);
 
 				/* 서버와 클라이언트의 연결을 종료하는 부분 */
-				if(listener.quit == 1) {
+				if(listener.quit == true) {
 					try {
 						if(din != null)
 							din.close();
@@ -80,7 +85,7 @@ public class ClientApplication {
 	}
 
 	/* 서버로 Request message를 전송하는 메소드 */
-	public static void reqMessage(String client_req, String cid, int num_req, DataOutputStream dout) {
+	public static void reqMessage(String client_req, String cid, DataOutputStream dout) {
 		// msg = Request message
 		String msg = "Req///" + client_req + "///CID:" + cid + "///Num_Req:" + num_req + "///END_MSG";
 		sm.sendMessage(msg);
@@ -91,7 +96,9 @@ public class ClientApplication {
 /* 메시지 리스너 객체 */
 class MessageListener extends Thread {
 	Socket socket;
-	int quit = 0;
+	boolean quit = false;
+	boolean check_ack = false;
+	int num_ack = 1;
 	ClientApplication c;
 	
 	MessageListener(Socket _s, ClientApplication _c) {
@@ -103,21 +110,23 @@ class MessageListener extends Thread {
 		try {
 			InputStream in = this.socket.getInputStream();
 			DataInputStream din = new DataInputStream(in);
-			OutputStream out = this.socket.getOutputStream()
-;			DataOutputStream dout = new DataOutputStream(out);
+			OutputStream out = this.socket.getOutputStream();
+			DataOutputStream dout = new DataOutputStream(out);
 
 			while (true) {
-				/* 서버로부터 ACK 메시지를 받음 */
-				
-				
-				/* 서버로부터 Request 메시지를 받아와서 출력 */
+				/* 서버로부터 메시지를 받아와서 출력 */
 				String full_msg = din.readUTF();
 				String msg = full_msg;
 				String scode = null;
 				StringTokenizer st = new StringTokenizer(msg, "///");
-				
 				msg = st.nextToken();
 				
+				// ACK message 받은 경우 (타이머 추가 필요)
+				if(msg.equals("ACK")) {
+					System.out.println("[ACK] : " + full_msg);
+					
+				}
+				// Response message 받은 경우
 				if(msg.equals("Res")) {
 					System.out.println("[Response] : " + full_msg);
 					msg = st.nextToken();
@@ -129,9 +138,9 @@ class MessageListener extends Thread {
 						clientList(msg);
 					} else if (scode.equals("250")) {
 						System.out.println(msg);
-						quit++;
+						quit = true;
 						try {
-							if(quit == 1) {
+							if(quit == true) {
 								if(dout != null)
 									dout.close();
 								if(out != null)
@@ -150,10 +159,8 @@ class MessageListener extends Thread {
 					} else {
 						System.out.println(msg);
 					}
-				} 
-				else if(msg.equals("ACK")) {
-					System.out.println("[ACK] : " + full_msg);
-					
+					// 통신이 정상적으로 이루어졌을 때마다 +1
+					c.num_req++;
 				}
 			}
 		} catch (Exception e) {

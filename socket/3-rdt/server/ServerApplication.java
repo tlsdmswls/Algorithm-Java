@@ -67,14 +67,15 @@ class Client extends Thread {
 	ServerApplication server;
 	ArrayList<String> clientList = new ArrayList<String>();	// 연결된 클라이언트 CID, IP주소
 	ArrayList<String> cidList = new ArrayList<String>();	// 저장을 요청한 클라이언트 CID
-	ServerSimulator sm;				// 데이터 손실 시뮬레이터 객체
+	ServerSimulator sm;			// 데이터 손실 시뮬레이터 객체
 	
 	int currentTime = 1;		// 서버 연결 시간
 	int scode;					// 상태 코드
 	String msg;					// 클라이언트로부터 읽어들인 메시지
 	String cid;					// 사용자가 입력한 CID
 	String num_req;				// Response message 내 Num_Req의 value
-	String num_save;			// 이전 num_req 값
+	int num_ack = 0;			// ACK message 내 Num_ACK의 value (초기값: 0)
+	boolean check_send = false; // req_num과 ack_num이 같으면 true
 	boolean close = false;		// 클라이언트가 연결 종료를 요청하면 true
 	
 	OutputStream out = null;
@@ -117,6 +118,7 @@ class Client extends Thread {
 				
 				msg = st_msg.nextToken();
 				
+				/* 클라이언트에게 Request message를 받은 경우 */
 				if(msg.equals("Req")) {
 					msg = st_msg.nextToken();
 					
@@ -125,20 +127,27 @@ class Client extends Thread {
 					}
 					num_req = num_req.substring(8);
 					
-					ackMessage(num_req);
-//					sendResMessage(msg, st_msg);
+					/* num_req와 num_ack를 비교한다.*/
+					// 두 num이 다른 경우: 정상 -> num_ack + 1
+					check_send = Integer.parseInt(num_req) == num_ack;
+					
+					if(check_send == false) {
+						num_ack++;	// 통신이 정상적으로 이루어졌을 때마다 +1
+					}
+					
+					// ACK message 전송
+					ackMessage();
+					
+					// Response message 전송
+					// 두 num이 같은 경우: 정상 -> 메시지 전송
+					if(check_send == true) {
+						sendResMessage(msg, st_msg);
+					}
+					
 					if(close == true) {
 						break;
 					}
 				}
-				
-				
-				int receive = receiveMessage();
-				
-				/* 클라이언트에서 메시지를 받지 못한 경우, 다시 전송 */
-				if(receive == 1) {
-					
-				}	
 				
 			}
 		} catch (Exception e){
@@ -203,8 +212,7 @@ class Client extends Thread {
 			String valueF = resValue(300, null);
 			resMessage(300, valueF);
 		}
-		System.out.println(sm.status); 	// Loss 여부 확인
-		num_save = num_req;
+		System.out.println("RESPONSE status > " + sm.status); 			// Loss 여부 확인
 	}
 	
 
@@ -239,9 +247,9 @@ class Client extends Thread {
 	}
 
 	/* 데이터 손실 시뮬레이터용 객체에서 ACK message를 전송하는 메소드 */
-	public void ackMessage(String num_req) {
+	public void ackMessage() {
 		// msg = ACK message
-		String msg = "ACK///Num_ACK:"+ num_req + "///END_MSG";
+		String msg = "ACK///Num_ACK:"+ num_ack + "///END_MSG";
 		sm.sendMessage(msg);
 	}
 	
@@ -251,19 +259,7 @@ class Client extends Thread {
 		String msg = "Res///" + scode + "///" + value + "///END_MSG";
 		sm.sendMessage(msg);
 	}
-	
-	/* Num_Req 값을 보고 메시지가 전송됐는지 확인하는 메소드 */
-	public int receiveMessage() {
-		// 0이면 전송 실패, 1이면 전송 완료
-		int receive = 0;
-		
-		// 두 num의 값이 다르면 전송 완료인 것으로 판단
-		if(!num_req.equals(num_save)) {
-			receive = 1;
-		}
-		return receive;
-	}
-	
+
 	/* CurrentTime을 재기 위한 메소드 */
 	public void startTimer() {
 		Timer timer = new Timer();
