@@ -73,7 +73,7 @@ class Client extends Thread {
 	String msg;					// 클라이언트로부터 읽어들인 메시지
 	String cid;					// 사용자가 입력한 CID
 	String num_req;				// Response message 내 Num_Req의 value
-	String num_ack = "0";		// ACK message 내 Num_Req의 value
+	String num_save;			// 이전 num_req 값
 	boolean close = false;		// 클라이언트가 연결 종료를 요청하면 true
 	
 	OutputStream out = null;
@@ -114,36 +114,31 @@ class Client extends Thread {
 				StringTokenizer st_msg = new StringTokenizer(msg, "///");
 				StringTokenizer st_num = new StringTokenizer(num_req, "///");
 				
-				
-				for (int i = 0; i < 4; i++) {
-					num_req = st_num.nextToken();
-				}
-				num_req = num_req.substring(8);
-				System.out.println("num_req : " + num_req);
-				
-				msg = st_msg.nextToken();
 				msg = st_msg.nextToken();
 				
-				/* 클라이언트에서 메시지를 받지 못한 경우 다시 전송 */
-				while(true) {
-					/* ACK message 전송 */
-					ackMessage(num_req);
-					boolean receive = receiveMessage();
-					System.out.println(sm.status); 	// Loss 여부 확인
-					System.out.println("receive :::::::: " + receive);
-					if(receive == false) {
-						/* ACK message 전송 */
-						ackMessage(num_req);
-						
-						/* Response message 전송 */
-						sendResMessage(msg, st_msg);
-						if(close == true) {
-							break;
-						}
-					} else {
+				if(msg.equals("Req")) {
+					msg = st_msg.nextToken();
+					
+					for (int i = 0; i < 4; i++) {
+						num_req = st_num.nextToken();
+					}
+					num_req = num_req.substring(8);
+					System.out.println("num_req : " + num_req);
+					
+					sendResMessage(msg, st_msg);
+					if(close == true) {
 						break;
 					}
 				}
+				
+				
+				int receive = receiveMessage();
+				
+				/* 클라이언트에서 메시지를 받지 못한 경우, 다시 전송 */
+				if(receive == 1) {
+					
+				}	
+				
 			}
 		} catch (Exception e){
 			e.printStackTrace();
@@ -207,7 +202,8 @@ class Client extends Thread {
 			String valueF = resValue(300, null);
 			resMessage(300, valueF);
 		}
-		num_ack = num_req;
+		System.out.println(sm.status); 	// Loss 여부 확인
+		num_save = num_req;
 	}
 	
 
@@ -256,13 +252,13 @@ class Client extends Thread {
 	}
 	
 	/* Num_Req 값을 보고 메시지가 전송됐는지 확인하는 메소드 */
-	public boolean receiveMessage() {
-		// false = 전송 실패, true = 전송 완료
-		boolean receive = false;
+	public int receiveMessage() {
+		// 0이면 전송 실패, 1이면 전송 완료
+		int receive = 0;
 		
 		// 두 num의 값이 다르면 전송 완료인 것으로 판단
-		if(!num_req.equals(num_ack)) {
-			receive = true;
+		if(!num_req.equals(num_save)) {
+			receive = 1;
 		}
 		return receive;
 	}
