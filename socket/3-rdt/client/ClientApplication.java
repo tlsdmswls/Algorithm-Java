@@ -4,7 +4,9 @@ import java.util.*;
 
 public class ClientApplication {
 	Socket mySocket = null;
-
+	static ClientSimulator sm;
+	static int num_req = 1;
+	
 	public static void main(String[] args) {
 		ClientApplication client = new ClientApplication();
 		Scanner sc = new Scanner(System.in);
@@ -14,10 +16,7 @@ public class ClientApplication {
 		InputStream in = null;
 		DataInputStream din = null;
 
-		int num_req = 1;
-
 		/* TCP 연결 전, 사용자에게 CID를 입력받음 */
-		System.out.println("Test Client");
 		System.out.print("CID(NickName) 입력: ");
 		String cid = sc.nextLine();
 
@@ -26,6 +25,7 @@ public class ClientApplication {
 			System.out.println("서버로 연결되었습니다.");
 
 			MessageListener listener = new MessageListener(client.mySocket);
+			sm = new ClientSimulator(client.mySocket);
 			listener.start();
 
 			out = client.mySocket.getOutputStream();
@@ -39,7 +39,6 @@ public class ClientApplication {
 				System.out.print(">> ");
 				String client_req = sc.nextLine();
 				reqMessage(client_req, cid, num_req, dout);
-				num_req++; 	// Request message 1번 보낼 때마다 +1
 				Thread.sleep(100);
 
 				/* 서버와 클라이언트의 연결을 종료하는 부분 */
@@ -72,20 +71,50 @@ public class ClientApplication {
 		// msg = Request message
 		String msg = "Req///" + client_req + "///CID:" + cid + "///Num_Req:" + num_req + "///END_MSG";
 
+		sm.sendMessage(msg);
+//		dout.writeUTF(msg);
+		System.out.println("[Request] : " + msg);
+	}
+}
+
+/* 데이터 손실 시뮬레이터용 객체 */
+class ClientSimulator {
+	ClientApplication c;
+	Socket socket;
+	Random rd = new Random();
+	String status = null;		// 데이터 손실 여부를 체크할 문자열 (Loss, NoLoss)
+	MessageListener ml;
+
+	ClientSimulator(Socket _s) {
+		socket = _s;
+	}
+	
+	/* 서버로 Message를 전송하는 메소드 */
+	public void sendMessage(String msg) {
+		OutputStream out;
 		try {
-			dout.writeUTF(msg);
-			System.out.println("[Request] : " + msg);
+			out = this.socket.getOutputStream();
+			DataOutputStream dout = new DataOutputStream(out);
+			
+			int if_write = rd.nextInt(10);
+			if(if_write < 7) {
+				dout.writeUTF(msg);
+				status = "NoLoss";
+			} else {
+				status = "Loss";
+			}
 		} catch (IOException e) {
-			System.out.println("입출력 예외 발생...");
+			e.printStackTrace();
 		}
 	}
 }
+
 
 /* 메시지 리스너 객체 */
 class MessageListener extends Thread {
 	Socket socket;
 	int quit = 0;
-	
+	ClientApplication c;
 	
 	MessageListener(Socket _s) {
 		this.socket = _s;
@@ -95,9 +124,9 @@ class MessageListener extends Thread {
 		try {
 			InputStream in = this.socket.getInputStream();
 			DataInputStream din = new DataInputStream(in);
-
+			
+			/* 서버로부터 메시지를 받아온다. */
 			while (true) {
-				/* 서버로부터 메시지를 받아와서 출력 */
 				String full_msg = din.readUTF();
 				String msg = full_msg;
 				String scode = null;
@@ -105,7 +134,14 @@ class MessageListener extends Thread {
 				
 				msg = st.nextToken();
 				
-				if(msg.equals("Res")) {
+				/* 서버로부터 받은 메시지가 ACK message인 경우 */
+				if(msg.equals("ACK")) {
+					System.out.println("[ACK] : " + full_msg);
+					c.num_req++; 	// 다음 요청의 Request message를 보낼 때마다 +1
+					
+				}
+				/* 서버로부터 받은 메시지가 Response message인 경우 */
+				else if(msg.equals("Res")) {
 					System.out.println("[Response] : " + full_msg);
 					msg = st.nextToken();
 					scode = msg;
@@ -131,10 +167,6 @@ class MessageListener extends Thread {
 					} else {
 						System.out.println(msg);
 					}
-				} 
-				else if(msg.equals("ACK")) {
-					System.out.println("[ACK] : " + full_msg);
-					
 				}
 			}
 		} catch (Exception e) {
