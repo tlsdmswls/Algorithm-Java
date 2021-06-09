@@ -99,7 +99,9 @@ class MessageListener extends Thread {
 	boolean quit = false;
 	boolean check_ack = false;
 	int num_ack = 1;
+	int clientTimer = 1; 		// 1이면 0.1초
 	ClientApplication c;
+	boolean run = true;
 	
 	MessageListener(Socket _s, ClientApplication _c) {
 		this.socket = _s;
@@ -112,22 +114,61 @@ class MessageListener extends Thread {
 			DataInputStream din = new DataInputStream(in);
 			OutputStream out = this.socket.getOutputStream();
 			DataOutputStream dout = new DataOutputStream(out);
-
+			
+			boolean ack_status = false;
+			boolean res_status = false;
+			
+			
 			while (true) {
-				/* 서버로부터 메시지를 받아와서 출력 */
-				String full_msg = din.readUTF();
-				String msg = full_msg;
-				String scode = null;
-				StringTokenizer st = new StringTokenizer(msg, "///");
-				msg = st.nextToken();
+				clientTimer = 1;
+				startTimer();
 				
-				// ACK message 받은 경우 (타이머 추가 필요)
-				if(msg.equals("ACK")) {
-					System.out.println("[ACK] : " + full_msg);
+				// 타이머 시작 후 ACK message를 받아온다.
+				while(clientTimer < 6) {
+					String full_msg = din.readUTF();
+					String msg = full_msg;
+					String scode = null;
+					StringTokenizer st = new StringTokenizer(msg, "///");
+					msg = st.nextToken();
 					
+					// ACK message 받은 경우
+					if(msg.equals("ACK")) {
+						System.out.println("[ACK] : " + full_msg);
+						ack_status = true;
+						break;
+					}
+				}	
+				clientTimer = 1;
+				
+				// ACK message 받지 못한 경우
+				if(ack_status == false) {
+					c.timeout_resend = 0;
 				}
-				// Response message 받은 경우
-				if(msg.equals("Res")) {
+					
+				// 타이머 재시작 후 Response message를 받아온다.
+				startTimer();
+				System.out.println("재시ㅏㅈㄱ!!!!!!@#!@#@#ㄸㅉㅇㄸㄹㅇㄲㄴㅋㄹㅋㄸㄴㄹㅇ");
+				while(clientTimer < 6) {
+					String full_msg = din.readUTF();
+					String msg = full_msg;
+					StringTokenizer st = new StringTokenizer(msg, "///");
+					msg = st.nextToken();
+				
+					// Response message 받은 경우
+					if(msg.equals("Res")) {
+						res_status = true;
+						break;
+					}
+				}
+				
+				// Response message 받은 경우 결과 출력
+				if(res_status == true) {
+					String full_msg = din.readUTF();
+					String msg = full_msg;
+					String scode = null;
+					StringTokenizer st = new StringTokenizer(msg, "///");
+					msg = st.nextToken();
+					
 					System.out.println("[Response] : " + full_msg);
 					msg = st.nextToken();
 					scode = msg;
@@ -160,14 +201,55 @@ class MessageListener extends Thread {
 						System.out.println(msg);
 					}
 					// 통신이 정상적으로 이루어졌을 때마다 +1
-					c.num_req++;
+					ClientApplication.num_req++;
 				}
 			}
 		} catch (Exception e) {
 			System.out.println("듣기 객체에서 예외 발생...");
 		}
 	}
-
+	
+	
+	/* 타이머를 구동(재시작)하는 메소드 */
+	public void startTimer() {
+		Timer timer = new Timer();
+		TimerTask task = new TimerTask(){
+		    @Override
+		    public void run() {
+		    	while(clientTimer < 6) {
+		    		try {
+		    			if(run) {
+		    				clientTimer++;		// 실행 횟수 증가
+							Thread.sleep(100);	// 0.1초 단위
+		    			} else {
+		    				timer.cancel();
+		    				timer.purge();
+		    			}
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+		}}}};
+		timer.schedule(task, 100, 100);	// 0.1초 뒤 실행, 0.1초마다 반복
+		System.out.println("타이머 종료!");
+		run = false;
+	}
+	
+	/* 타이머를 구동(재시작)하는 메소드 */
+//	public void startTimer() {
+//		Timer timer = new Timer();
+//		clientTimer = 1;
+//		TimerTask task = new TimerTask(){
+//		    @Override
+//		    public void run() {
+//		    	while(true) {
+//		    		try {
+//		    			clientTimer++;		// 실행 횟수 증가
+//						Thread.sleep(100);	// 0.1초 단위
+//					} catch (InterruptedException e) {
+//						e.printStackTrace();
+//		}}}};
+//		timer.schedule(task, 100, 100);	// 0.1초 뒤 실행, 0.1초마다 반복
+//	}
+	
 	/* 서버에 연결된 클라이언트들을 출력하는 메소드 */
 	void clientList(String msg) {
 		StringTokenizer st = new StringTokenizer(msg, "***");
@@ -187,7 +269,6 @@ class ClientSimulator {
 	Random rd = new Random();
 	String status = null;		// 데이터 손실 여부를 체크할 문자열 (Loss, NoLoss)
 	MessageListener ml;
-	int clientTimer = 1; 		// 타이머는 0.1초부터 시작
 	
 	ClientSimulator(Socket _s) {
 		socket = _s;
@@ -214,22 +295,5 @@ class ClientSimulator {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-	}
-	
-	/* 타이머를 구동(재시작)하는 메소드 */
-	public void startTimer() {
-		Timer timer = new Timer();
-		clientTimer = 1;
-		TimerTask task = new TimerTask(){
-		    @Override
-		    public void run() {
-		    	while(true) {
-		    		try {
-		    			clientTimer++;		// 실행 횟수 증가
-						Thread.sleep(100);	// 0.1초 단위
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-		}}}};
-		timer.schedule(task, 100, 100);	// 0.1초 뒤 실행, 0.1초마다 반복
 	}
 }
