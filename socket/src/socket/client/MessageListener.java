@@ -1,20 +1,26 @@
 package socket.client;
 
-import java.io.*;
-import java.util.*;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.util.StringTokenizer;
+import java.util.Timer;
+import java.util.TimerTask;
 
-/* ¸Ş½ÃÁö ¸®½º³Ê °´Ã¼ */
+/* ë©”ì‹œì§€ ë¦¬ìŠ¤ë„ˆ ê°ì²´ */
 public class MessageListener extends Thread {
 	Socket socket;
 	boolean quit = false;
 	boolean check_ack = false;
 	int num_ack = 1;
-	int clientTimer = 1; // 1ÀÌ¸é 0.1ÃÊ
+	int clientTimer = 1;	// 1ì´ë©´ 0.1ì´ˆ
 	ClientApplication c;
 	boolean run = true;
-	int res_resend = 0; // Response ÀçÀü¼Û Ä«¿îÆ®
-	int ack_resend = 0; // Å¸ÀÓ¾Æ¿ô¿¡ ÀÇÇÑ ÀçÀü¼Û Ä«¿îÆ®
-
+	int res_resend = 0;		// Response ì¬ì „ì†¡ ì¹´ìš´íŠ¸
+	int ack_resend = 0;	// íƒ€ì„ì•„ì›ƒì— ì˜í•œ ì¬ì „ì†¡ ì¹´ìš´íŠ¸
+	
 	MessageListener(Socket _s, ClientApplication _c) {
 		this.socket = _s;
 		this.c = _c;
@@ -30,87 +36,88 @@ public class MessageListener extends Thread {
 			DataInputStream din = new DataInputStream(in);
 			OutputStream out = this.socket.getOutputStream();
 			DataOutputStream dout = new DataOutputStream(out);
-
+			
 			String full_msg = null;
 			String msg = null;
 			String scode = null;
 			StringTokenizer st = null;
-
+			
 			boolean ack_status = false;
 			boolean res_status = false;
-
+			
+			
 			while (true) {
-				clientTimer = 1; // Å¸ÀÌ¸Ó¸¦ 0.1ÃÊ·Î ÃÊ±âÈ­
-				startTimer(); // Å¸ÀÌ¸Ó ½ÃÀÛ
-
+				clientTimer = 1;	// íƒ€ì´ë¨¸ë¥¼ 0.1ì´ˆë¡œ ì´ˆê¸°í™”
+				startTimer();		// íƒ€ì´ë¨¸ ì‹œì‘
+				
 				full_msg = din.readUTF();
-
-				// Å¸ÀÌ¸Ó ½ÃÀÛ ÈÄ ACK message¸¦ ¹Ş¾Æ¿Â´Ù.
-				while (clientTimer < 6) {
+				
+				// íƒ€ì´ë¨¸ ì‹œì‘ í›„ ACK messageë¥¼ ë°›ì•„ì˜¨ë‹¤.
+				while(clientTimer < 6) {
 					msg = full_msg;
 					scode = null;
 					st = new StringTokenizer(msg, "///");
 					msg = st.nextToken();
-
-					// ACK message ¹ŞÀº °æ¿ì
-					if (msg.equals("ACK")) {
+					
+					// ACK message ë°›ì€ ê²½ìš°
+					if(msg.equals("ACK")) {
 						System.out.println("[ACK] : " + full_msg);
 						ack_status = true;
 						break;
 					}
-
-					// Å¸ÀÌ¸Ó Àç½ÃÀÛ ÈÄ Response message¸¦ ¹Ş¾Æ¿Â´Ù.
+					
+					// íƒ€ì´ë¨¸ ì¬ì‹œì‘ í›„ Response messageë¥¼ ë°›ì•„ì˜¨ë‹¤.
 					startTimer();
 					full_msg = din.readUTF();
-					while (clientTimer < 6) {
+					while(clientTimer < 6) {
 						full_msg = din.readUTF();
 						msg = full_msg;
 						st = new StringTokenizer(msg, "///");
 						msg = st.nextToken();
-
-						// Response message ¹ŞÀº °æ¿ì
-						if (msg.equals("Res")) {
+					
+						// Response message ë°›ì€ ê²½ìš°
+						if(msg.equals("Res")) {
 							res_status = true;
 							break;
 						}
 					}
 				}
-
-				// ACK message ¹ŞÁö ¸øÇÑ °æ¿ì
-				if (ack_status == false) {
+				
+				// ACK message ë°›ì§€ ëª»í•œ ê²½ìš°
+				if(ack_status == false) {
 					ack_resend++;
-					System.out.println("Timeout¿¡ ÀÇÇÑ ACK ÀçÀü¼Û: " + ack_resend);
+					System.out.println("Timeoutì— ì˜í•œ ACK ì¬ì „ì†¡: " + ack_resend);
 				}
-
-				// Response message ¹ŞÁö ¸øÇÑ °æ¿ì
-				if (res_status == false) {
+				
+				// Response message ë°›ì§€ ëª»í•œ ê²½ìš°
+				if(res_status == false) {
 					res_resend++;
-					System.out.println("Timeout¿¡ ÀÇÇÑ Response ÀçÀü¼Û: " + res_resend);
+					System.out.println("Timeoutì— ì˜í•œ Response ì¬ì „ì†¡: " + res_resend);
 				}
-
-				// Response message ¹ŞÀº °æ¿ì °á°ú Ãâ·Â
-				if (res_status == true && res_status == true) {
+				
+				// Response message ë°›ì€ ê²½ìš° ê²°ê³¼ ì¶œë ¥
+				if(res_status == true && res_status == true) {
 					msg = st.nextToken();
 					scode = msg;
 					msg = st.nextToken();
-
-					/* »ç¿ëÀÚÀÇ ¿äÃ» °á°ú Ãâ·Â */
+					
+					/* ì‚¬ìš©ìì˜ ìš”ì²­ ê²°ê³¼ ì¶œë ¥ */
 					if (scode.equals("200")) {
 						clientList(msg);
 					} else if (scode.equals("250")) {
 						System.out.println(msg);
 						quit = true;
 						try {
-							if (quit == true) {
-								if (dout != null)
+							if(quit == true) {
+								if(dout != null)
 									dout.close();
-								if (out != null)
+								if(out != null)
 									out.close();
-								if (din != null)
+								if(din != null)
 									din.close();
-								if (in != null)
+								if(in != null)
 									in.close();
-								if (socket != null)
+								if(socket != null)
 									socket.close();
 							}
 						} catch (Exception e) {
@@ -120,41 +127,41 @@ public class MessageListener extends Thread {
 					} else {
 						System.out.println(msg);
 					}
-					// Åë½ÅÀÌ Á¤»óÀûÀ¸·Î ÀÌ·ç¾îÁ³À» ¶§¸¶´Ù +1
-					c.num_req++;
-					System.out.println(c.num_req);
+					// í†µì‹ ì´ ì •ìƒì ìœ¼ë¡œ ì´ë£¨ì–´ì¡Œì„ ë•Œë§ˆë‹¤ +1
+					ClientApplication.num_req++;
+					System.out.println(ClientApplication.num_req);
 				}
 			}
 		} catch (Exception e) {
-			System.out.println("µè±â °´Ã¼¿¡¼­ ¿¹¿Ü ¹ß»ı...");
+			System.out.println("ë“£ê¸° ê°ì²´ì—ì„œ ì˜ˆì™¸ ë°œìƒ...");
 			e.printStackTrace();
 		}
 	}
-
-	/* Å¸ÀÌ¸Ó¸¦ ±¸µ¿(Àç½ÃÀÛ)ÇÏ´Â ¸Ş¼Òµå */
+	
+	/* íƒ€ì´ë¨¸ë¥¼ êµ¬ë™(ì¬ì‹œì‘)í•˜ëŠ” ë©”ì†Œë“œ */
 	public void startTimer() {
 		clientTimer = 0;
 		Timer timer = new Timer();
-		TimerTask task = new TimerTask() {
-			@Override
-			public void run() {
-				while (clientTimer < 6) { // 0.5ÃÊµ¿¾È ½ÇÇà
-					clientTimer++; // ½ÇÇà È½¼ö Áõ°¡
-					try {
+		TimerTask task = new TimerTask(){
+		    @Override
+		    public void run() {
+		    	while(clientTimer < 6) {	// 0.5ì´ˆë™ì•ˆ ì‹¤í–‰
+    				clientTimer++;			// ì‹¤í–‰ íšŸìˆ˜ ì¦ê°€
+    				try {
 						Thread.sleep(100);
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
-				}
-			}
-		};
-		timer.schedule(task, 100, 100); // 0.1ÃÊ µÚ ½ÇÇà, 0.1ÃÊ¸¶´Ù ¹İº¹
+	    		}
+	    	}
+	    };
+		timer.schedule(task, 100, 100);	// 0.1ì´ˆ ë’¤ ì‹¤í–‰, 0.1ì´ˆë§ˆë‹¤ ë°˜ë³µ
 		task.cancel();
 		timer.cancel();
 		timer.purge();
 	}
 
-	/* ¼­¹ö¿¡ ¿¬°áµÈ Å¬¶óÀÌ¾ğÆ®µéÀ» Ãâ·ÂÇÏ´Â ¸Ş¼Òµå */
+	/* ì„œë²„ì— ì—°ê²°ëœ í´ë¼ì´ì–¸íŠ¸ë“¤ì„ ì¶œë ¥í•˜ëŠ” ë©”ì†Œë“œ */
 	void clientList(String msg) {
 		StringTokenizer st = new StringTokenizer(msg, "***");
 		int count = st.countTokens();

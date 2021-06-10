@@ -16,7 +16,7 @@ public class ClientSimulator {
 		socket = _s;
 	}
 	
-	/* ¼­¹ö·Î Request message¸¦ Àü¼ÛÇÏ´Â ¸Þ¼Òµå */
+	/* ì„œë²„ë¡œ Request messageë¥¼ ì „ì†¡í•˜ëŠ” ë©”ì†Œë“œ */
 	public void sendMessage(String msg) {
 		OutputStream out;
 		try {

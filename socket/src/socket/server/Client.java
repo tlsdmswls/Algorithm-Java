@@ -10,25 +10,25 @@ public class Client extends Thread {
 	Client c;
 	Socket socket;
 	ServerApplication server;
-	ArrayList<String> clientList = new ArrayList<String>();	// ????? ??????? CID, IP???
-	ArrayList<String> cidList = new ArrayList<String>();	// ?????? ????? ??????? CID
-	ServerSimulator sm;			// ?????? ??? ???????? ???
+	ArrayList<String> clientList = new ArrayList<String>();	// 연결된 클라이언트 CID, IP주소
+	ArrayList<String> cidList = new ArrayList<String>();	// 저장을 요청한 클라이언트 CID
+	ServerSimulator sm;			// 데이터 손실 시뮬레이터 객체
 	
-	int currentTime = 1;		// ???? ???? ?��?
-	int scode;					// ???? ???
-	String msg;					// ????????��??? ?��???? ?????
-	String cid;					// ?????? ????? CID
-	String num_req;				// Response message ?? Num_Req?? value
-	int num_ack = 0;			// ACK message ?? Num_ACK?? value (???: 0)
-	boolean check_send = false; // req_num?? ack_num?? ?????? true
-	boolean close = false;		// ????????? ???? ???? ?????? true
+	int currentTime = 1;		// 서버 연결 시간
+	int scode;					// 상태 코드
+	String msg;					// 클라이언트로부터 읽어들인 메시지
+	String cid;					// 사용자가 입력한 CID
+	String num_req;				// Response message 내 Num_Req의 value
+	int num_ack = 0;			// ACK message 내 Num_ACK의 value (초기값: 0)
+	boolean check_send = false; // req_num과 ack_num이 같으면 true
+	boolean close = false;		// 클라이언트가 연결 종료를 요청하면 true
 	
 	OutputStream out = null;
 	DataOutputStream dout = null;
 	InputStream in = null;
 	DataInputStream din = null;
 	
-	/* ?????? */
+	/* 생성자 */
 	Client(Socket _s, ServerApplication _ss) {
 		this.socket = _s;
 		this.server = _ss;
@@ -52,9 +52,9 @@ public class Client extends Thread {
 			in = socket.getInputStream();
 			din = new DataInputStream(in);
 			
-			sm = new ServerSimulator(server.c);
+			sm = new ServerSimulator(ServerApplication.c);
 			
-			/* ????????��??? Request message?? ?��????? Response message?? ???? */
+			/* 클라이언트로부터 Request message를 읽어들이고 Response message를 전송 */
 			while(true) {
 				msg = din.readUTF();
 				num_req = msg;
@@ -63,7 +63,7 @@ public class Client extends Thread {
 				
 				msg = st_msg.nextToken();
 				
-				/* ??????????? Request message?? ???? ??? */
+				/* 클라이언트에게 Request message를 받은 경우 */
 				if(msg.equals("Req")) {
 					msg = st_msg.nextToken();
 					
@@ -72,19 +72,19 @@ public class Client extends Thread {
 					}
 					num_req = num_req.substring(8);
 					
-					/* num_req?? num_ack?? ?????.*/
-					// ?? num?? ??? ???: ???? -> num_ack + 1
+					/* num_req와 num_ack를 비교한다.*/
+					// 두 num이 다른 경우: 정상 -> num_ack + 1
 					check_send = (Integer.parseInt(num_req) == num_ack);
 					
 					if(check_send == false) {
-						num_ack++;	// ????? ?????????? ???????? ?????? +1
+						num_ack++;	// 통신이 정상적으로 이루어졌을 때마다 +1
 					}
 					
-					// ACK message ????
+					// ACK message 전송
 					ackMessage();
 					
-					// Response message ????
-					// ?? num?? ???? ???: ???? -> ????? ????
+					// Response message 전송
+					// 두 num이 같은 경우: 정상 -> 메시지 전송
 					if(check_send == true) {
 						sendResMessage(msg, st_msg);
 					}
@@ -100,39 +100,39 @@ public class Client extends Thread {
 		}				
 	}
 	
-	/* Response message?? ??????? ???? */
+	/* Response message를 전송하는 메소드 */
 	public void sendResMessage(String msg, StringTokenizer st_msg) {
-		/* ?????:	??????? ???????
-		 * ???? ????:	Response message ?????? ???? ???? */				
+		/* 조건문:	사용자의 요청사항
+		 * 블록 내부:	Response message 전송을 위한 내용 */				
 		if(msg.equals("a")) {
-			// CID ????
+			// CID 저장
 			cid = st_msg.nextToken();
 			cid = cid.substring(cid.lastIndexOf("CID:") + 4);
 			cidList.add(cid);
 			
-			// ???? ??? ?��? value ??? ??, ?????? ??? ????????? ??????? write ????
+			// 상태 코드에 맞는 value 작성 후, 데이터 손실 시뮬레이터용 객체에서 write 수행
 			String valueA = resValue(100, cid);
 			resMessage(100, valueA);
 		}
 		else if(msg.equals("b")) {
-			// ???? ?��?
+			// 현재 시간
 			String valueB = resValue(130, null);
 			resMessage(130, valueB);
 		}
 		else if(msg.equals("c")) {
-			// ??????????? ???? ?��?
+			// 클라이언트와의 연결 시간
 			String valueC = resValue(150, null);
 			resMessage(150, valueC);
 		}
 		else if(msg.equals("d")) {
-			// ??????? CID, IP??? ?????
+			// 클라이언트 CID, IP주소 리스트
 			cid = st_msg.nextToken();
 			cid = cid.substring(cid.lastIndexOf("CID:") + 4);
 			String valueD = resValue(200, null);
 			resMessage(200, valueD);
 		}
 		else if(msg.equals("q")){
-			// ???? ???? ????
+			// 서버 연결 종료
 			String valueQ = resValue(250, null);
 			resMessage(250, valueQ);
 			try {
@@ -153,25 +153,25 @@ public class Client extends Thread {
 				e.printStackTrace();
 			}
 		}
-		else {	// ??? ????? ?��? ????
+		else {	// 요청 메시지 인식 실패
 			String valueF = resValue(300, null);
 			resMessage(300, valueF);
 		}
 	}
 	
 
-	/* Response Message?? ??????? ?��? value ???? ????? ???? */
+	/* Response Message의 상태코드에 맞는 value 값을 구하는 메소드 */
 	public String resValue(int scode, String cid) {
 		String value = "CID: IP address";
 		if (scode == 100) {
-			value = "?????? ????? ?????????? ??????????. (" + cid + ")";
+			value = "서버에 아이디를 정상적으로 저장했습니다. (" + cid + ")";
 		}
 		else if (scode == 130) {
 			LocalDateTime time = LocalDateTime.now();
-			value = time.format(DateTimeFormatter.ofPattern("???? ?��?: a hh?? mm??"));
+			value = time.format(DateTimeFormatter.ofPattern("현재 시간: a hh시 mm분"));
 		}
 		else if (scode == 150) {
-			value = "???????? ???? ?��?: " + currentTime + "??";
+			value = "서버와의 연결 시간: " + currentTime + "초";
 		}
 		else if (scode == 200) {
 			getClientList();
@@ -183,28 +183,28 @@ public class Client extends Thread {
 			sb.append("END_ClientList");
 			value = sb.toString();
 		} else if (scode == 250) {
-			value = "???????? ?????? ?????????? ???????????.";
+			value = "서버와의 연결이 정상적으로 종료되었습니다.";
 		} else if (scode == 300) {
-			value = "??? ????? ?����? ??????????.";
+			value = "요청 메시지 인식에 실패했습니다.";
 		}
 		return value;
 	}
 
-	/* ?????? ??? ????????? ??????? ACK message?? ??????? ???? */
+	/* 데이터 손실 시뮬레이터용 객체에서 ACK message를 전송하는 메소드 */
 	public void ackMessage() {
 		// msg = ACK message
 		String msg = "ACK///Num_ACK:"+ num_ack + "///END_MSG";
 		sm.sendMessage(msg);
 	}
 	
-	/* ?????? ??? ????????? ??????? Response message?? ??????? ???? */
+	/* 데이터 손실 시뮬레이터용 객체에서 Response message를 전송하는 메소드 */
 	public void resMessage(int scode, String value) {
 		// msg = Response message
 		String msg = "Res///" + scode + "///" + value + "///END_MSG";
 		sm.sendMessage(msg);
 	}
 
-	/* CurrentTime?? ??? ???? ???? */
+	/* CurrentTime을 재기 위한 메소드 */
 	public void startTimer() {
 		Timer timer = new Timer();
 		TimerTask task = new TimerTask(){
@@ -212,7 +212,7 @@ public class Client extends Thread {
 		    public void run() {
 		    	while(true) {
 		    		try {
-		    			currentTime++;		// ???? ??? ????
+		    			currentTime++;		// 실행 횟수 증가
 						Thread.sleep(1000);
 					} catch (InterruptedException e) {
 						e.printStackTrace();
@@ -220,10 +220,10 @@ public class Client extends Thread {
 		    	}
 		    }	
 		};
-		timer.schedule(task, 1000, 1000);	// 1?? ?? ????, 1????? ???
+		timer.schedule(task, 1000, 1000);	// 1초 뒤 실행, 1초마다 반복
 	}
 	
-	/* ????? ????????? CID?? IP???? ????? ???? */
+	/* 연결된 클라이언트의 CID와 IP주소를 구하는 메소드 */
 	public void getClientList() {
 		String clientIp = null;
 		String clientId = null;
