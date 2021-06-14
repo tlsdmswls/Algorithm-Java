@@ -1,100 +1,83 @@
-package socket.client;
+package client;
 
-import java.io.*;
-import java.util.*;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.util.StringTokenizer;
+import java.util.Timer;
 
-/* ¸Ş½ÃÁö ¸®½º³Ê °´Ã¼ */
+/* ë©”ì‹œì§€ ë¦¬ìŠ¤ë„ˆ ê°ì²´ */
 public class MessageListener extends Thread {
 	Socket socket;
-	boolean quit = false;
-	boolean check_ack = false;
-	int num_ack = 1;
-	int clientTimer = 1; // 1ÀÌ¸é 0.1ÃÊ
 	ClientApplication c;
-	boolean run = true;
-	int res_resend = 0; // Response ÀçÀü¼Û Ä«¿îÆ®
-	int ack_resend = 0; // Å¸ÀÓ¾Æ¿ô¿¡ ÀÇÇÑ ÀçÀü¼Û Ä«¿îÆ®
+	ClientTimer t;
+	// ClientTimer t = new ClientTimer(socket);
+
+	boolean quit = false;
+	boolean check_send;
+	int ack = 0;
+	int res = 0;
+
+	// static Timer timer = null;
 
 	MessageListener(Socket _s, ClientApplication _c) {
 		this.socket = _s;
 		this.c = _c;
 	}
 
-	public MessageListener(int clientTimer) {
-		this.clientTimer = clientTimer;
-	}
-
 	public void run() {
 		try {
+			t = new ClientTimer(socket);
+
 			InputStream in = this.socket.getInputStream();
 			DataInputStream din = new DataInputStream(in);
 			OutputStream out = this.socket.getOutputStream();
 			DataOutputStream dout = new DataOutputStream(out);
 
-			String full_msg = null;
-			String msg = null;
-			String scode = null;
-			StringTokenizer st = null;
-
-			boolean ack_status = false;
-			boolean res_status = false;
-
 			while (true) {
-				clientTimer = 1; // Å¸ÀÌ¸Ó¸¦ 0.1ÃÊ·Î ÃÊ±âÈ­
-				startTimer(); // Å¸ÀÌ¸Ó ½ÃÀÛ
+				// Request ì „ì†¡ ì‹¤íŒ¨í•œ ê²½ìš°
+				if (!ClientApplication.check_send) {
+					continue;
+				}
 
-				full_msg = din.readUTF();
+				/* ì„œë²„ë¡œë¶€í„° ë©”ì‹œì§€ë¥¼ ë°›ì•„ì™€ì„œ ì¶œë ¥ */
+				String full_msg = din.readUTF();
+				String msg = full_msg;
+				String scode = null;
+				String num_ack = null;
+				StringTokenizer st = new StringTokenizer(msg, "///");
+				msg = st.nextToken();
 
-				// Å¸ÀÌ¸Ó ½ÃÀÛ ÈÄ ACK message¸¦ ¹Ş¾Æ¿Â´Ù.
-				while (clientTimer < 6) {
-					msg = full_msg;
-					scode = null;
-					st = new StringTokenizer(msg, "///");
+				// ACK ë°›ì€ ê²½ìš°
+				if (msg.equals("ACK")) {
+					System.out.println("ACK: " + full_msg);
 					msg = st.nextToken();
+					num_ack = msg;
+					num_ack = num_ack.substring(8);
 
-					// ACK message ¹ŞÀº °æ¿ì
-					if (msg.equals("ACK")) {
-						System.out.println("[ACK] : " + full_msg);
-						ack_status = true;
-						break;
+					/* Req_Num, ACK_Num ë¹„êµ */
+					// ì„±ê³µ
+					if (ClientApplication.num_req == Integer.parseInt(num_ack)) {
+						ack++; // ACK ë°›ì€ íšŸìˆ˜ + 1
+
 					}
+					// ì‹¤íŒ¨
+					else {
 
-					// Å¸ÀÌ¸Ó Àç½ÃÀÛ ÈÄ Response message¸¦ ¹Ş¾Æ¿Â´Ù.
-					startTimer();
-					full_msg = din.readUTF();
-					while (clientTimer < 6) {
-						full_msg = din.readUTF();
-						msg = full_msg;
-						st = new StringTokenizer(msg, "///");
-						msg = st.nextToken();
-
-						// Response message ¹ŞÀº °æ¿ì
-						if (msg.equals("Res")) {
-							res_status = true;
-							break;
-						}
 					}
 				}
 
-				// ACK message ¹ŞÁö ¸øÇÑ °æ¿ì
-				if (ack_status == false) {
-					ack_resend++;
-					System.out.println("Timeout¿¡ ÀÇÇÑ ACK ÀçÀü¼Û: " + ack_resend);
-				}
-
-				// Response message ¹ŞÁö ¸øÇÑ °æ¿ì
-				if (res_status == false) {
-					res_resend++;
-					System.out.println("Timeout¿¡ ÀÇÇÑ Response ÀçÀü¼Û: " + res_resend);
-				}
-
-				// Response message ¹ŞÀº °æ¿ì °á°ú Ãâ·Â
-				if (res_status == true && res_status == true) {
+				// Response ë°›ì€ ê²½ìš°
+				if (msg.equals("Res")) {
+					System.out.println("Response: " + full_msg);
+					res++; // Response ë°›ì€ íšŸìˆ˜ + 1
 					msg = st.nextToken();
 					scode = msg;
 					msg = st.nextToken();
 
-					/* »ç¿ëÀÚÀÇ ¿äÃ» °á°ú Ãâ·Â */
+					/* ì‚¬ìš©ìì˜ ìš”ì²­ ê²°ê³¼ ì¶œë ¥ */
 					if (scode.equals("200")) {
 						clientList(msg);
 					} else if (scode.equals("250")) {
@@ -120,41 +103,17 @@ public class MessageListener extends Thread {
 					} else {
 						System.out.println(msg);
 					}
-					// Åë½ÅÀÌ Á¤»óÀûÀ¸·Î ÀÌ·ç¾îÁ³À» ¶§¸¶´Ù +1
+					// í†µì‹ ì´ ì •ìƒì ìœ¼ë¡œ ì´ë£¨ì–´ì¡Œì„ ë•Œë§ˆë‹¤ +1
 					c.num_req++;
-					System.out.println(c.num_req);
 				}
 			}
 		} catch (Exception e) {
-			System.out.println("µè±â °´Ã¼¿¡¼­ ¿¹¿Ü ¹ß»ı...");
+			System.out.println("ë“£ê¸° ê°ì²´ì—ì„œ ì˜ˆì™¸ ë°œìƒ...");
 			e.printStackTrace();
 		}
 	}
 
-	/* Å¸ÀÌ¸Ó¸¦ ±¸µ¿(Àç½ÃÀÛ)ÇÏ´Â ¸Ş¼Òµå */
-	public void startTimer() {
-		clientTimer = 0;
-		Timer timer = new Timer();
-		TimerTask task = new TimerTask() {
-			@Override
-			public void run() {
-				while (clientTimer < 6) { // 0.5ÃÊµ¿¾È ½ÇÇà
-					clientTimer++; // ½ÇÇà È½¼ö Áõ°¡
-					try {
-						Thread.sleep(100);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
-			}
-		};
-		timer.schedule(task, 100, 100); // 0.1ÃÊ µÚ ½ÇÇà, 0.1ÃÊ¸¶´Ù ¹İº¹
-		task.cancel();
-		timer.cancel();
-		timer.purge();
-	}
-
-	/* ¼­¹ö¿¡ ¿¬°áµÈ Å¬¶óÀÌ¾ğÆ®µéÀ» Ãâ·ÂÇÏ´Â ¸Ş¼Òµå */
+	/* ì„œë²„ì— ì—°ê²°ëœ í´ë¼ì´ì–¸íŠ¸ë“¤ì„ ì¶œë ¥í•˜ëŠ” ë©”ì†Œë“œ */
 	void clientList(String msg) {
 		StringTokenizer st = new StringTokenizer(msg, "***");
 		int count = st.countTokens();

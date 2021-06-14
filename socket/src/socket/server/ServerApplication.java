@@ -1,9 +1,11 @@
+package server;
+
 import java.io.*;
 import java.net.*;
 import java.util.*;
 
-/* ¼­¹ö´Â Å¬¶óÀÌ¾ğÆ®¿¡°Ô Request ¸Ş½ÃÁö¸¦ ¼ö½ÅÇÏ°Ô µÇ¸é ACK ¸Ş½ÃÁö¸¦ Å¬¶óÀÌ¾ğÆ®¿¡°Ô ¼Û½ÅÇÑ´Ù.
- * ACK ¼Û½ÅÀÌ ¿Ï·áµÇ¸é Request ¿äÃ»¿¡ µû¸¥ µ¿ÀÛÀ» ¼öÇàÇÑ´Ù. */
+/* ì„œë²„ëŠ” í´ë¼ì´ì–¸íŠ¸ì—ê²Œ Request ë©”ì‹œì§€ë¥¼ ìˆ˜ì‹ í•˜ê²Œ ë˜ë©´ ACK ë©”ì‹œì§€ë¥¼ í´ë¼ì´ì–¸íŠ¸ì—ê²Œ ì†¡ì‹ í•œë‹¤.
+ * ACK ì†¡ì‹ ì´ ì™„ë£Œë˜ë©´ Request ìš”ì²­ì— ë”°ë¥¸ ë™ì‘ì„ ìˆ˜í–‰í•œë‹¤. */
 public class ServerApplication {
 	ServerSocket ss = null;
 	ArrayList<Client> clients = new ArrayList<Client>();
@@ -13,7 +15,7 @@ public class ServerApplication {
 		ServerApplication server = new ServerApplication();
 		try {
 			server.ss = new ServerSocket(55555);
-			System.out.println("¼­¹ö ¼ÒÄÏÀÌ »ı¼ºµÇ¾ú½À´Ï´Ù.");
+			System.out.println("ì„œë²„ ì†Œì¼“ì´ ìƒì„±ë˜ì—ˆìŠµë‹ˆë‹¤.");
 
 			while (true) {
 				Socket socket = server.ss.accept();
@@ -23,33 +25,9 @@ public class ServerApplication {
 				c.start();
 			}
 		} catch (SocketException e) {
-			System.out.println("¼ÒÄÏ ¿¹¿Ü ¹ß»ı...");
+			System.out.println("ì†Œì¼“ ì˜ˆì™¸ ë°œìƒ...");
 		} catch (IOException e) {
-			System.out.println("ÀÔÃâ·Â ¿¹¿Ü ¹ß»ı...");
+			System.out.println("ì…ì¶œë ¥ ì˜ˆì™¸ ë°œìƒ...");
 		}
-	}
-}
-
-/* µ¥ÀÌÅÍ ¼Õ½Ç ½Ã¹Ä·¹ÀÌÅÍ¿ë °´Ã¼ */
-class ServerSimulator {
-	Random rd = new Random();
-	Client c = null;
-
-	ServerSimulator(Client _c) {
-		c = _c;
-	}
-
-	/* Å¬¶óÀÌ¾ğÆ®·Î Message¸¦ Àü¼ÛÇÏ´Â ¸Ş¼Òµå */
-	public void sendMessage(String msg) {
-		int if_write = rd.nextInt(10);
-		try {
-			if (if_write < 7) {
-				c.dout.writeUTF(msg);
-			} else {
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		System.out.println(msg);
 	}
 }

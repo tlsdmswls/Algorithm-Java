@@ -1,28 +1,33 @@
-package socket.server;
+package server;
 
 import java.io.IOException;
 import java.util.Random;
 
-/* µ¥ÀÌÅÍ ¼Õ½Ç ½Ã¹Ä·¹ÀÌÅÍ¿ë °´Ã¼ */
+/* ë°ì´í„° ì†ì‹¤ ì‹œë®¬ë ˆì´í„°ìš© ê°ì²´ */
 public class ServerSimulator {
 	Random rd = new Random();
 	Client c = null;
+	boolean status;
 
 	ServerSimulator(Client _c) {
 		c = _c;
 	}
 
-	/* Å¬¶óÀÌ¾ğÆ®·Î Message¸¦ Àü¼ÛÇÏ´Â ¸Ş¼Òµå */
-	public void sendMessage(String msg) {
+	/* ë©”ì‹œì§€ë¥¼ ë³´ë‚´ëŠ” ë©”ì†Œë“œ */
+	public boolean sendMessage(String msg, String type) {
 		int if_write = rd.nextInt(10);
 		try {
 			if (if_write < 7) {
 				c.dout.writeUTF(msg);
+				System.out.println(type + ": " + msg);
+				status = true;
 			} else {
+				System.out.println(type + ": " + "Loss");
+				status = false;
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		System.out.println(msg);
+		return status;
 	}
 }
