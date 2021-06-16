@@ -16,6 +16,7 @@ public class Client extends Thread {
 	Client c;
 	Socket socket;
 	ServerApplication server;
+
 	ArrayList<String> clientList = new ArrayList<String>(); // 연결된 클라이언트 CID, IP주소
 	ArrayList<String> cidList = new ArrayList<String>(); // 저장을 요청한 클라이언트 CID
 	ServerSimulator sm; // 데이터 손실 시뮬레이터 객체
@@ -57,7 +58,6 @@ public class Client extends Thread {
 			dout = new DataOutputStream(out);
 			in = socket.getInputStream();
 			din = new DataInputStream(in);
-
 			sm = new ServerSimulator(server.c);
 
 			/* 클라이언트로부터 메시지를 읽어들이고 메시지 전송 */
@@ -71,9 +71,8 @@ public class Client extends Thread {
 
 				StringTokenizer st_msg = new StringTokenizer(msg, "///");
 				StringTokenizer st_num = new StringTokenizer(num_req, "///");
-
 				msg = st_msg.nextToken();
-
+        
 				/* 클라이언트에게 Request 받은 경우 */
 				if (msg.equals("Req")) {
 					msg = st_msg.nextToken();
@@ -125,6 +124,7 @@ public class Client extends Thread {
 		 * 조건문: 사용자의 요청사항 블록 내부: Response 전송을 위한 내용
 		 */
 		if (msg.equals("a")) {
+
 			// CID 저장
 			cid = st_msg.nextToken();
 			cid = cid.substring(cid.lastIndexOf("CID:") + 4);

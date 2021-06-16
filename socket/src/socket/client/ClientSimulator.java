@@ -19,10 +19,11 @@ public class ClientSimulator {
 
 	ClientSimulator(Socket _s) {
 		socket = _s;
-	}
-
-	/* 서버로 Request message를 전송하는 메소드 */
+  }
+  
+	/* 서버로 Request 전송하는 메소드 */
 	public boolean sendMessage(String msg) {
+
 		OutputStream out;
 		try {
 			out = this.socket.getOutputStream();
@@ -42,7 +43,7 @@ public class ClientSimulator {
 		}
 		return status;
 	}
-
+  
 	// /* 타이머 구동하는 메소드 */
 	// public static void runTimer() {
 	// stopTimer();

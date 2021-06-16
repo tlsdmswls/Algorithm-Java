@@ -17,7 +17,7 @@ public class ServerSimulator {
 	public boolean sendMessage(String msg, String type) {
 		int if_write = rd.nextInt(10);
 		try {
-			if (if_write < 7) {
+			if(if_write < 7) {
 				c.dout.writeUTF(msg);
 				System.out.println(type + ": " + msg);
 				status = true;

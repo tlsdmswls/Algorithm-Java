@@ -47,7 +47,7 @@ public class ClientApplication {
 						+ " c) TCP 연결 유지 시간\n" + " d) 연결된 모든 클라이언트의 IP주소와 CID\n" + " q) 서버와 연결 종료");
 				System.out.print(">> ");
 				String client_req = sc.nextLine();
-
+				
 				boolean check_null = (client_req).equals("");
 				if (check_null == true) {
 					System.out.println("값을 입력하지 않았습니다.");
@@ -62,16 +62,20 @@ public class ClientApplication {
 				/* 서버와 클라이언트의 연결을 종료하는 부분 */
 				if (listener.quit == true) {
 					try {
-						if (din != null)
+						if(din != null)
 							din.close();
-						if (in != null)
+						if(in != null)
 							in.close();
-						if (dout != null)
+						if(dout != null)
 							dout.close();
-						if (out != null)
+						if(out != null)
 							out.close();
-						if (client.mySocket != null) {
+						if(client.mySocket != null) {
 							client.mySocket.close();
+							break;
+						}
+						if(sc != null) {
+							sc.close();
 							break;
 						}
 					} catch (Exception e) {
@@ -93,6 +97,7 @@ public class ClientApplication {
 		System.out.println("   ACK 재전송 횟수: " + ack_resend);
 		System.out.println("   Request 재전송 횟수: " + res_resend);
 		System.out.println("재전송률: " + ((double) (send - num_req - 1) / (double) (ack_resend + res_resend - 1)));
+
 		System.out.println("======================================================");
 	}
 

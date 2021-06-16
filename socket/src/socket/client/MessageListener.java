@@ -76,7 +76,7 @@ public class MessageListener extends Thread {
 					msg = st.nextToken();
 					scode = msg;
 					msg = st.nextToken();
-
+          
 					/* 사용자의 요청 결과 출력 */
 					if (scode.equals("200")) {
 						clientList(msg);
@@ -84,16 +84,16 @@ public class MessageListener extends Thread {
 						System.out.println(msg);
 						quit = true;
 						try {
-							if (quit == true) {
-								if (dout != null)
+							if(quit == true) {
+								if(dout != null)
 									dout.close();
-								if (out != null)
+								if(out != null)
 									out.close();
-								if (din != null)
+								if(din != null)
 									din.close();
-								if (in != null)
+								if(in != null)
 									in.close();
-								if (socket != null)
+								if(socket != null)
 									socket.close();
 							}
 						} catch (Exception e) {
@@ -104,13 +104,37 @@ public class MessageListener extends Thread {
 						System.out.println(msg);
 					}
 					// 통신이 정상적으로 이루어졌을 때마다 +1
-					c.num_req++;
+					ClientApplication.num_req++;
+					
 				}
 			}
 		} catch (Exception e) {
 			System.out.println("듣기 객체에서 예외 발생...");
 			e.printStackTrace();
 		}
+	}
+	
+	/* 타이머를 구동(재시작)하는 메소드 */
+	public void startTimer() {
+		clientTimer = 0;
+		Timer timer = new Timer();
+		TimerTask task = new TimerTask(){
+		    @Override
+		    public void run() {
+		    	while(clientTimer < 6) {	// 0.5초동안 실행
+    				clientTimer++;			// 실행 횟수 증가
+    				try {
+						Thread.sleep(100);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+	    		}
+	    	}
+	    };
+		timer.schedule(task, 100, 100);	// 0.1초 뒤 실행, 0.1초마다 반복
+		task.cancel();
+		timer.cancel();
+		timer.purge();
 	}
 
 	/* 서버에 연결된 클라이언트들을 출력하는 메소드 */
