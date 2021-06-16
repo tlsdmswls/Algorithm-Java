@@ -1,4 +1,4 @@
-package server;
+package socket.server;
 
 import java.io.*;
 import java.net.*;
@@ -10,7 +10,7 @@ public class ServerApplication {
 	ServerSocket ss = null;
 	ArrayList<Client> clients = new ArrayList<Client>();
 	static Client c;
-	
+
 	public static void main(String[] args) {
 		ServerApplication server = new ServerApplication();
 		try {

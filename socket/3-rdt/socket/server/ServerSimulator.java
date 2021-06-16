@@ -1,5 +1,4 @@
-package server;
-
+package socket.server;
 import java.io.IOException;
 import java.util.Random;
 
@@ -7,27 +6,23 @@ import java.util.Random;
 public class ServerSimulator {
 	Random rd = new Random();
 	Client c = null;
-	boolean status;
-
+		
 	ServerSimulator(Client _c) {
 		c = _c;
 	}
-
-	/* 메시지를 보내는 메소드 */
-	public boolean sendMessage(String msg, String type) {
+	
+	/* 클라이언트로 Message를 전송하는 메소드 */
+	public void sendMessage(String msg) {
 		int if_write = rd.nextInt(10);
 		try {
 			if(if_write < 7) {
 				c.dout.writeUTF(msg);
-				System.out.println(type + ": " + msg);
-				status = true;
+				c.dout.flush();
 			} else {
-				System.out.println(type + ": " + "Loss");
-				status = false;
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		return status;
+		System.out.println(msg);
 	}
 }

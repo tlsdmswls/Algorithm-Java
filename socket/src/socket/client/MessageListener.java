@@ -1,4 +1,4 @@
-package socket.client;
+package client;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -7,100 +7,76 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.util.StringTokenizer;
 import java.util.Timer;
-import java.util.TimerTask;
 
 /* 메시지 리스너 객체 */
 public class MessageListener extends Thread {
 	Socket socket;
-	boolean quit = false;
-	boolean check_ack = false;
-	int num_ack = 1;
-	int clientTimer = 1;	// 1이면 0.1초
 	ClientApplication c;
-	boolean run = true;
-	int res_resend = 0;		// Response 재전송 카운트
-	int ack_resend = 0;	// 타임아웃에 의한 재전송 카운트
-	
+	ClientTimer t;
+	// ClientTimer t = new ClientTimer(socket);
+
+	boolean quit = false;
+	boolean check_send;
+	int ack = 0;
+	int res = 0;
+
+	// static Timer timer = null;
+
 	MessageListener(Socket _s, ClientApplication _c) {
 		this.socket = _s;
 		this.c = _c;
 	}
 
-	public MessageListener(int clientTimer) {
-		this.clientTimer = clientTimer;
-	}
-
 	public void run() {
 		try {
+			t = new ClientTimer(socket);
+
 			InputStream in = this.socket.getInputStream();
 			DataInputStream din = new DataInputStream(in);
 			OutputStream out = this.socket.getOutputStream();
 			DataOutputStream dout = new DataOutputStream(out);
-			
-			String full_msg = null;
-			String msg = null;
-			String scode = null;
-			StringTokenizer st = null;
-			
-			boolean ack_status = false;
-			boolean res_status = false;
-			
-			
+
 			while (true) {
-				clientTimer = 1;	// 타이머를 0.1초로 초기화
-				startTimer();		// 타이머 시작
-				
-				full_msg = din.readUTF();
-				
-				// 타이머 시작 후 ACK message를 받아온다.
-				while(clientTimer < 6) {
-					msg = full_msg;
-					scode = null;
-					st = new StringTokenizer(msg, "///");
+				// Request 전송 실패한 경우
+				if (!ClientApplication.check_send) {
+					continue;
+				}
+
+				/* 서버로부터 메시지를 받아와서 출력 */
+				String full_msg = din.readUTF();
+				String msg = full_msg;
+				String scode = null;
+				String num_ack = null;
+				StringTokenizer st = new StringTokenizer(msg, "///");
+				msg = st.nextToken();
+
+				// ACK 받은 경우
+				if (msg.equals("ACK")) {
+					System.out.println("ACK: " + full_msg);
 					msg = st.nextToken();
-					
-					// ACK message 받은 경우
-					if(msg.equals("ACK")) {
-						System.out.println("[ACK] : " + full_msg);
-						ack_status = true;
-						break;
+					num_ack = msg;
+					num_ack = num_ack.substring(8);
+
+					/* Req_Num, ACK_Num 비교 */
+					// 성공
+					if (ClientApplication.num_req == Integer.parseInt(num_ack)) {
+						ack++; // ACK 받은 횟수 + 1
+
 					}
-					
-					// 타이머 재시작 후 Response message를 받아온다.
-					startTimer();
-					full_msg = din.readUTF();
-					while(clientTimer < 6) {
-						full_msg = din.readUTF();
-						msg = full_msg;
-						st = new StringTokenizer(msg, "///");
-						msg = st.nextToken();
-					
-						// Response message 받은 경우
-						if(msg.equals("Res")) {
-							res_status = true;
-							break;
-						}
+					// 실패
+					else {
+
 					}
 				}
-				
-				// ACK message 받지 못한 경우
-				if(ack_status == false) {
-					ack_resend++;
-					System.out.println("Timeout에 의한 ACK 재전송: " + ack_resend);
-				}
-				
-				// Response message 받지 못한 경우
-				if(res_status == false) {
-					res_resend++;
-					System.out.println("Timeout에 의한 Response 재전송: " + res_resend);
-				}
-				
-				// Response message 받은 경우 결과 출력
-				if(res_status == true && res_status == true) {
+
+				// Response 받은 경우
+				if (msg.equals("Res")) {
+					System.out.println("Response: " + full_msg);
+					res++; // Response 받은 횟수 + 1
 					msg = st.nextToken();
 					scode = msg;
 					msg = st.nextToken();
-					
+          
 					/* 사용자의 요청 결과 출력 */
 					if (scode.equals("200")) {
 						clientList(msg);
@@ -129,7 +105,7 @@ public class MessageListener extends Thread {
 					}
 					// 통신이 정상적으로 이루어졌을 때마다 +1
 					ClientApplication.num_req++;
-					System.out.println(ClientApplication.num_req);
+					
 				}
 			}
 		} catch (Exception e) {
